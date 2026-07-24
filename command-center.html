@@ -1,21 +1,24 @@
 <style>
 /* ===== Command Center — styles ===== */
 :root {
-  --navy: #1b1633;
-  --navy-2: #271f45;
-  --blue: #6d5ae6;        /* primary — indigo/violet */
-  --blue-600: #5a46d6;
-  --sky: #ece9fb;
-  --ink: #1b1f27;
+  /* ===== The Global Connects — navy · red · white ===== */
+  --navy: #0b2545;        /* brand navy — sidebar, headings */
+  --navy-2: #13315c;      /* navy hover / secondary */
+  --blue: #1b4c8c;        /* primary interactive — nav, links, progress */
+  --blue-600: #143a6e;
+  --sky: #e7eef7;         /* pale navy tint — info tags */
+  --accent: #c1272d;      /* brand red — primary CTA & highlights */
+  --accent-600: #a31f24;
+  --ink: #1a2433;
   --muted: #5c6675;
   --line: #e2e6ec;
-  --bg: #f5f6fa;
+  --bg: #f5f7fa;
   --card: #ffffff;
   --green: #1a7f47;
   --green-bg: #e4f4ea;
   --amber: #a8720b;
   --amber-bg: #fbf1dc;
-  --red: #b3261e;
+  --red: #c1272d;
   --red-bg: #fbe6e5;
   --teal: #0f766e;
   --teal-bg: #d9f2ef;
@@ -50,10 +53,10 @@ input, select, textarea { font-family: inherit; font-size: 14px; }
   top: 0;
   height: 100vh;
 }
-.brand { display: flex; gap: 12px; align-items: center; padding: 6px 8px 20px; }
-.brand-mark { font-size: 30px; }
+.brand { display: flex; gap: 12px; align-items: center; padding: 6px 8px 18px; margin-bottom: 6px; border-bottom: 2px solid var(--accent); }
+.brand-mark { font-size: 28px; }
 .brand-text strong { display: block; color: #fff; font-size: 15px; letter-spacing: .2px; }
-.brand-text small { color: #9d92c4; font-size: 11px; }
+.brand-text small { color: #93a6c4; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; }
 .nav { display: flex; flex-direction: column; gap: 4px; flex: 1; }
 .nav-item {
   display: flex; align-items: center; gap: 12px;
@@ -87,10 +90,10 @@ input, select, textarea { font-family: inherit; font-size: 14px; }
 }
 #globalSearch:focus { outline: 2px solid var(--blue); outline-offset: 0; background: #fff; }
 .primary-btn {
-  background: var(--blue); color: #fff; border: 0; padding: 10px 16px;
+  background: var(--accent); color: #fff; border: 0; padding: 10px 16px;
   border-radius: 9px; font-weight: 600; font-size: 14px; white-space: nowrap;
 }
-.primary-btn:hover { background: var(--blue-600); }
+.primary-btn:hover { background: var(--accent-600); }
 .view-root { padding: 26px 28px 60px; }
 
 /* ===== KPI cards ===== */
@@ -251,35 +254,35 @@ table.data tr.clickable:hover { background: var(--bg); cursor: pointer; }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --ink: #e7ecf3; --muted: #9aa7ba; --line: #2a3345; --bg: #0f1522;
-    --card: #161d2c; --sky: #241f42; --gray-bg: #1b2333;
+    --ink: #e7ecf3; --muted: #9aa7ba; --line: #2a3345; --bg: #0d1626;
+    --card: #142033; --sky: #16294a; --gray-bg: #182338; --blue: #3f74c4;
     --green-bg: #12301f; --amber-bg: #332608; --red-bg: #3a1512; --teal-bg: #0d2b28;
     --shadow: 0 1px 3px rgba(0,0,0,.4); --shadow-lg: 0 12px 32px rgba(0,0,0,.5);
   }
-  .field input, .field select, .field textarea, .col-count { background: #0f1522; color: var(--ink); }
-  .card, .proj-card, .goal-card { background: #1b2333; }
-  .pill-btn:hover { background: #322a55; }
+  .field input, .field select, .field textarea, .col-count { background: #0d1626; color: var(--ink); }
+  .card, .proj-card, .goal-card { background: #182338; }
+  .pill-btn:hover { background: #1f3358; }
 }
 
 
 /* ===== Artifact theme toggle overrides ===== */
 :root[data-theme="light"] {
-  --ink:#1b1f27; --muted:#5c6675; --line:#e2e6ec; --bg:#f5f6fa; --card:#ffffff;
-  --sky:#ece9fb; --gray-bg:#eef1f5; --green-bg:#e4f4ea; --amber-bg:#fbf1dc; --red-bg:#fbe6e5; --teal-bg:#d9f2ef;
+  --ink:#1a2433; --muted:#5c6675; --line:#e2e6ec; --bg:#f5f7fa; --card:#ffffff; --blue:#1b4c8c;
+  --sky:#e7eef7; --gray-bg:#eef1f5; --green-bg:#e4f4ea; --amber-bg:#fbf1dc; --red-bg:#fbe6e5; --teal-bg:#d9f2ef;
   --shadow:0 1px 3px rgba(16,24,40,.08),0 1px 2px rgba(16,24,40,.04); --shadow-lg:0 12px 32px rgba(16,24,40,.16);
 }
 :root[data-theme="light"] .field input, :root[data-theme="light"] .field select,
 :root[data-theme="light"] .field textarea, :root[data-theme="light"] .col-count { background:#fff; color:var(--ink); }
 :root[data-theme="light"] .card, :root[data-theme="light"] .proj-card, :root[data-theme="light"] .goal-card { background:#fff; }
 :root[data-theme="dark"] {
-  --ink:#e7ecf3; --muted:#9aa7ba; --line:#2a3345; --bg:#0f1522; --card:#161d2c;
-  --sky:#241f42; --gray-bg:#1b2333; --green-bg:#12301f; --amber-bg:#332608; --red-bg:#3a1512; --teal-bg:#0d2b28;
+  --ink:#e7ecf3; --muted:#9aa7ba; --line:#2a3345; --bg:#0d1626; --card:#142033; --blue:#3f74c4;
+  --sky:#16294a; --gray-bg:#182338; --green-bg:#12301f; --amber-bg:#332608; --red-bg:#3a1512; --teal-bg:#0d2b28;
   --shadow:0 1px 3px rgba(0,0,0,.4); --shadow-lg:0 12px 32px rgba(0,0,0,.5);
 }
 :root[data-theme="dark"] .field input, :root[data-theme="dark"] .field select,
-:root[data-theme="dark"] .field textarea, :root[data-theme="dark"] .col-count { background:#0f1522; color:var(--ink); }
-:root[data-theme="dark"] .card, :root[data-theme="dark"] .proj-card, :root[data-theme="dark"] .goal-card { background:#1b2333; }
-:root[data-theme="dark"] .pill-btn:hover { background:#322a55; }
+:root[data-theme="dark"] .field textarea, :root[data-theme="dark"] .col-count { background:#0d1626; color:var(--ink); }
+:root[data-theme="dark"] .card, :root[data-theme="dark"] .proj-card, :root[data-theme="dark"] .goal-card { background:#182338; }
+:root[data-theme="dark"] .pill-btn:hover { background:#1f3358; }
 
 </style>
 
@@ -287,10 +290,10 @@ table.data tr.clickable:hover { background: var(--bg); cursor: pointer; }
     <!-- Sidebar -->
     <aside class="sidebar">
       <div class="brand">
-        <span class="brand-mark">🚀</span>
+        <span class="brand-mark">🌐</span>
         <div class="brand-text">
-          <strong>Command Center</strong>
-          <small>Business Operations</small>
+          <strong>The Global Connects</strong>
+          <small>Command Center</small>
         </div>
       </div>
       <nav class="nav">
