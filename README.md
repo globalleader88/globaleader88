@@ -1,6 +1,9 @@
-# 🚀 Command Center
+# Global Connects Services — Command Center
 
 **A personal business operations dashboard — one place to keep up with everything running in your business.**
+
+Styled to match the Global Connects Services brand: a dark, technical "federal contractor" look —
+near-black ground, cyan primary accent, amber call-to-action, and lime-green monospace data readouts.
 
 Command Center gives a solo founder or small-business owner a single screen for the things that
 actually run the operation: your clients and leads, active projects, the tasks due this week, the
@@ -55,7 +58,7 @@ the sidebar to restore it at any time.
 
 ```
 index.html        # markup + generic entity modal
-css/styles.css    # styling (light/dark aware, responsive)
+css/styles.css    # styling — dark "federal contractor" brand theme, responsive
 js/data.js        # seed dataset + playbook content
 js/app.js         # state, views, CRUD, drag-and-drop, persistence
 ```
