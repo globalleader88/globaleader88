@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GovBid Command — Federal Contract Pipeline &amp; Compliance Manager</title>
+  <meta name="description" content="Track federal contract opportunities, manage your bid pipeline, and never miss a SAM.gov or certification renewal." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8F%9B%EF%B8%8F%3C/text%3E%3C/svg%3E" />
+</head>
+<body>
+  <div id="app">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="brand">
+        <span class="brand-mark">🏛️</span>
+        <div class="brand-text">
+          <strong>GovBid Command</strong>
+          <small>Contract Pipeline &amp; Compliance</small>
+        </div>
+      </div>
+      <nav class="nav">
+        <button class="nav-item active" data-view="dashboard"><span>📊</span> Dashboard</button>
+        <button class="nav-item" data-view="pipeline"><span>🗂️</span> Bid Pipeline</button>
+        <button class="nav-item" data-view="deadlines"><span>⏰</span> Deadlines</button>
+        <button class="nav-item" data-view="compliance"><span>🛡️</span> Compliance</button>
+        <button class="nav-item" data-view="reference"><span>📖</span> Set-Aside Guide</button>
+      </nav>
+      <div class="sidebar-footer">
+        <button id="exportBtn" class="ghost-btn" title="Download all data as JSON">⬇ Export</button>
+        <button id="importBtn" class="ghost-btn" title="Load data from a JSON backup">⬆ Import</button>
+        <input type="file" id="importFile" accept="application/json" hidden />
+        <button id="resetBtn" class="ghost-btn danger" title="Clear all data and reload samples">↺ Reset demo</button>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="main">
+      <header class="topbar">
+        <h1 id="viewTitle">Dashboard</h1>
+        <div class="topbar-actions">
+          <input type="search" id="globalSearch" placeholder="Search opportunities…" />
+          <button id="newOppBtn" class="primary-btn">＋ New Opportunity</button>
+        </div>
+      </header>
+      <section id="viewRoot" class="view-root"><!-- views render here --></section>
+    </main>
+  </div>
+
+  <!-- Opportunity modal -->
+  <div class="modal-overlay" id="oppModal" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="oppModalTitle">
+      <div class="modal-head">
+        <h2 id="oppModalTitle">New Opportunity</h2>
+        <button class="icon-btn" data-close-modal>✕</button>
+      </div>
+      <form id="oppForm" class="modal-body">
+        <input type="hidden" name="id" />
+        <div class="field span-2">
+          <label>Opportunity Title *</label>
+          <input name="title" required placeholder="e.g. IT Support Services — VA Medical Center" />
+        </div>
+        <div class="field">
+          <label>Issuing Agency</label>
+          <input name="agency" placeholder="e.g. Dept. of Veterans Affairs" />
+        </div>
+        <div class="field">
+          <label>Solicitation #</label>
+          <input name="solicitation" placeholder="e.g. 36C25025Q0123" />
+        </div>
+        <div class="field">
+          <label>NAICS Code</label>
+          <input name="naics" placeholder="e.g. 541519" />
+        </div>
+        <div class="field">
+          <label>Set-Aside</label>
+          <select name="setAside">
+            <option value="">— None / Full &amp; Open —</option>
+            <option>Small Business</option>
+            <option>8(a)</option>
+            <option>WOSB</option>
+            <option>EDWOSB</option>
+            <option>HUBZone</option>
+            <option>SDVOSB</option>
+            <option>VOSB</option>
+            <option>Sole Source</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Estimated Value (USD)</label>
+          <input name="value" type="number" min="0" step="1000" placeholder="250000" />
+        </div>
+        <div class="field">
+          <label>Stage</label>
+          <select name="stage">
+            <option value="identified">Identified</option>
+            <option value="reviewing">Reviewing</option>
+            <option value="bidding">Bidding</option>
+            <option value="submitted">Submitted</option>
+            <option value="won">Won</option>
+            <option value="lost">Lost</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Response Due</label>
+          <input name="dueDate" type="date" />
+        </div>
+        <div class="field">
+          <label>Win Probability: <span id="probOut">50</span>%</label>
+          <input name="probability" type="range" min="0" max="100" value="50" step="5" />
+        </div>
+        <div class="field span-2">
+          <label>Notes</label>
+          <textarea name="notes" rows="3" placeholder="Incumbent, key requirements, teaming partners…"></textarea>
+        </div>
+        <div class="modal-foot span-2">
+          <button type="button" class="ghost-btn danger" id="deleteOppBtn" hidden>Delete</button>
+          <div class="spacer"></div>
+          <button type="button" class="ghost-btn" data-close-modal>Cancel</button>
+          <button type="submit" class="primary-btn">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Compliance modal -->
+  <div class="modal-overlay" id="certModal" hidden>
+    <div class="modal small" role="dialog" aria-modal="true" aria-labelledby="certModalTitle">
+      <div class="modal-head">
+        <h2 id="certModalTitle">Add Registration / Certification</h2>
+        <button class="icon-btn" data-close-modal>✕</button>
+      </div>
+      <form id="certForm" class="modal-body">
+        <input type="hidden" name="id" />
+        <div class="field span-2">
+          <label>Name *</label>
+          <input name="name" required placeholder="e.g. SAM.gov Registration" />
+        </div>
+        <div class="field">
+          <label>Type</label>
+          <select name="type">
+            <option>Registration</option>
+            <option>Certification</option>
+            <option>Clearance</option>
+            <option>Insurance</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Expires</label>
+          <input name="expires" type="date" />
+        </div>
+        <div class="field span-2">
+          <label>Identifier / Notes</label>
+          <input name="identifier" placeholder="e.g. UEI / CAGE code, cert number" />
+        </div>
+        <div class="modal-foot span-2">
+          <button type="button" class="ghost-btn danger" id="deleteCertBtn" hidden>Delete</button>
+          <div class="spacer"></div>
+          <button type="button" class="ghost-btn" data-close-modal>Cancel</button>
+          <button type="submit" class="primary-btn">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

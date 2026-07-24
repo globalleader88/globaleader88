@@ -1,77 +1,115 @@
-# 🏛️ GovBid Command
+# 🎯 Federal Contracting Readiness Assessment — a lead-gen app for GovCon consultants
 
-**A federal contract pipeline & compliance manager for small-business government contractors.**
+A conversion-focused **lead generation web app** for a government-contracting consulting business.
+Prospects take a free 2-minute "Federal Contracting Readiness Assessment," instantly get a scored
+readiness profile with tailored recommendations (real value that earns trust), and in exchange you
+capture a **pre-qualified lead** — their contact details arrive *with their full readiness profile
+attached*, so you know exactly who's worth a call before you pick up the phone.
 
-GovBid Command helps a small firm keep its federal business-development effort organized in one
-place: track opportunities from discovery to award, manage the proposal pipeline, never miss a
-response deadline, and stay ahead of the registration and certification renewals that keep you
-eligible to win.
+Runs **100% in the browser** — no build step, no server, no accounts. Point it at one form endpoint
+and leads flow straight to you.
 
-It runs **100% in the browser** — no build step, no server, no API keys, no accounts. Data is
-saved locally in your browser (`localStorage`) and can be exported/imported as JSON.
-
-![Dashboard](assets/dashboard.png)
-![Bid Pipeline](assets/pipeline.png)
-
----
-
-## Why this is useful for government contracting
-
-Winning federal work is as much about *not dropping the ball* as it is about writing a great
-proposal. Set-aside eligibility lapses, a missed SAM.gov renewal, or a blown response deadline can
-disqualify you instantly. GovBid Command is built around those realities:
-
-| Feature | What it does for you |
-| --- | --- |
-| **Dashboard** | KPIs at a glance — active pursuits, pipeline value (raw + weighted by win probability), win rate, awarded value — plus a "Needs Attention" feed of expiring certs and near-term deadlines. |
-| **Bid Pipeline** | A drag-and-drop Kanban board (Identified → Reviewing → Bidding → Submitted → Won/Lost). Each card shows agency, set-aside type, NAICS, value, and a live deadline countdown. |
-| **Deadlines** | A sorted, color-coded table of every response due date on your active pursuits so nothing slips. |
-| **Compliance** | Track SAM.gov registration, 8(a)/WOSB/HUBZone/SDVOSB certifications, CMMC, FCL, insurance — with expiration status and lapse warnings. |
-| **Set-Aside Guide** | A built-in reference to the major SBA small-business set-aside programs and their key eligibility rules. |
-
-Each opportunity captures the fields that matter in federal BD: **solicitation number, issuing
-agency, NAICS code, set-aside type, estimated value, stage, response due date, win probability,
-and notes** (incumbent, teaming partners, key requirements).
+![Landing](assets/landing.png)
+![Results](assets/results.png)
 
 ---
 
-## Getting started
+## Why this generates leads (and better ones)
 
-Just open `index.html` in any modern browser:
+A bare "Contact us" form gets you strangers. This funnel gets you **qualified** prospects:
 
-```bash
-# from the project root
-open index.html          # macOS
-xdg-open index.html      # Linux
-# or serve it:
-python3 -m http.server 8000   # then visit http://localhost:8000
+1. **Hook** — a free, valuable assessment is far more clickable than "request a consultation."
+2. **Value first** — the score and recommendations are shown *before* any hard ask, which builds
+   trust and dramatically lifts form completion.
+3. **Qualification built in** — every lead arrives tagged with a readiness score, tier, and
+   category breakdown. A "Getting Started / score 24" lead and a "Contract-Ready / score 88" lead
+   need very different conversations — now you know which is which instantly.
+4. **Warm handoff** — the thank-you screen offers a booking link (Calendly, etc.), turning the lead
+   into a scheduled strategy call.
+
+The assessment scores five weighted categories that decide who wins federal work:
+**Registration & Eligibility · Certifications & Set-Asides · Past Performance & Capability ·
+Pipeline & Market Positioning · Proposal Readiness.**
+
+---
+
+## Make it yours in 2 minutes
+
+Everything you need to customize lives at the top of **`js/assessment.js`** in the `CONFIG` block:
+
+```js
+window.CONFIG = {
+  brandName:   "The Global Connects",   // your business name
+  tagline:     "GovCon Advisory",
+  headline:    "Are you ready to win federal contracts?",
+  subhead:     "...",
+  contactEmail:"you@yourfirm.com",
+  calendlyUrl: "",   // paste your booking link -> adds a "Book a call" button
+  leadEndpoint:""    // paste your form/webhook URL -> leads get delivered to you
+};
 ```
 
-The app loads with a realistic sample dataset so you can explore immediately. Use **Reset demo**
-in the sidebar to restore it at any time.
+You can also edit the questions, scoring weights, score tiers, and recommendation rules in the same
+file — no other code changes needed.
 
-## Usage tips
+## Connecting lead delivery
 
-- **Add an opportunity:** click **＋ New Opportunity** (top right).
-- **Move a bid through the pipeline:** drag its card between columns. Dropping into *Won* or *Lost*
-  auto-sets win probability to 100% / 0%.
-- **Edit anything:** click a card or a table row.
-- **Search:** the top-bar search filters the pipeline across title, agency, solicitation, NAICS,
-  set-aside, and notes.
-- **Back up / move machines:** **Export** downloads a JSON file; **Import** restores it.
+Set `CONFIG.leadEndpoint` to any URL that accepts a JSON `POST`. Common options:
+
+| Service | What to paste |
+| --- | --- |
+| **Formspree** | Your form endpoint, e.g. `https://formspree.io/f/xxxxxxx` — emails you each lead. |
+| **Netlify Forms / Zapier / Make** | The webhook URL they give you. |
+| **Google Sheets** | A Google Apps Script Web App URL that appends a row. |
+| **Your CRM** | Any inbound webhook. |
+
+Each lead is posted as JSON:
+
+```json
+{ "name": "...", "email": "...", "company": "...", "phone": "...", "goal": "...",
+  "score": 62, "tier": "Emerging Contender",
+  "categories": [ { "label": "Registration & Eligibility", "score": 60 }, ... ],
+  "recommendations": [ "..." ], "submittedAt": "2026-...", "source": "Readiness Assessment" }
+```
+
+**No endpoint yet?** The app runs in **demo mode**: every lead is saved in the browser and viewable
+at **`#/leads`** ("View captured leads" in the footer), with one-click **CSV export**. Nothing is
+ever lost — even with a live endpoint, a local backup copy is always kept.
+
+## Running it
+
+Just open `index.html`:
+
+```bash
+open index.html                 # macOS
+xdg-open index.html             # Linux
+python3 -m http.server 8000     # or serve, then visit http://localhost:8000
+```
+
+To go live, host the folder on any static host (Netlify, Vercel, GitHub Pages, S3, your own site)
+and embed a link/button to it from your website, email signature, or ad campaigns.
 
 ## Project structure
 
 ```
-index.html        # markup + modals
-css/styles.css    # styling (light/dark aware, responsive)
-js/data.js        # seed dataset + set-aside reference content
-js/app.js         # state, rendering, drag-and-drop, persistence
+index.html          # the funnel (landing → assessment → results → lead form → thank-you → leads admin)
+css/leadgen.css     # styling (light/dark aware, responsive)
+js/assessment.js    # YOUR CONFIG + questions, scoring, tiers, recommendations
+js/leadgen.js       # routing, wizard, scoring, lead capture/delivery, CSV export
+tracker.html + js/app.js + js/data.js + css/styles.css   # bonus: internal bid-pipeline tracker (see below)
 ```
 
-## Tech & privacy
+## Bonus: internal bid tracker
 
-- Vanilla HTML/CSS/JavaScript — zero dependencies.
-- All data stays in your browser's `localStorage`; nothing is transmitted anywhere.
-- This tool is an organizational aid. Always verify eligibility rules, thresholds, and deadlines
-  against official sources (SAM.gov, SBA.gov, and the solicitation itself) before bidding.
+`tracker.html` is a separate internal tool (also linked in the footer) for managing *your own* bid
+pipeline once leads become clients — a drag-and-drop opportunity board, deadline tracking, and a
+SAM.gov/certification compliance monitor. Fully self-contained.
+
+## Notes & honesty
+
+- Vanilla HTML/CSS/JS, zero dependencies. Verified end-to-end with a headless-browser test
+  (landing → scored results → lead capture → thank-you → admin table).
+- The assessment is a qualification and marketing tool, not legal/eligibility advice — always
+  confirm program rules against SAM.gov and SBA.gov.
+- Leads contain real people's contact info. If you deploy publicly, add a link to your privacy
+  policy and make sure your `leadEndpoint` provider is one you trust.
