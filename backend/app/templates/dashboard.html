@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block content %}
+  <h1>Lead Dashboard</h1>
+  <div class="cards">
+    <div class="card"><div class="n">{{ stats.active }}</div><div class="l">Active leads</div></div>
+    <div class="card"><div class="n" style="color:var(--hot)">{{ stats.by_tier.hot }}</div><div class="l">Hot</div></div>
+    <div class="card"><div class="n" style="color:var(--warm)">{{ stats.by_tier.warm }}</div><div class="l">Warm</div></div>
+    <div class="card"><div class="n" style="color:var(--cold)">{{ stats.by_tier.cold }}</div><div class="l">Cold</div></div>
+    <div class="card"><div class="n">{{ stats.avg_score }}</div><div class="l">Avg score</div></div>
+    <div class="card"><div class="n">{{ stats.duplicates }}</div><div class="l">Duplicates</div></div>
+  </div>
+
+  <div class="toolbar">
+    <a class="btn" href="/api/leads/export.csv">⬇ Export CSV</a>
+    <a class="btn ghost" href="/docs">Import via API / docs</a>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>#</th><th>Name</th><th>Company</th><th>Contact</th>
+        <th>Source</th><th>Readiness</th><th>Score</th><th>Tier</th><th>Top offer</th><th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for lead in leads %}
+      <tr>
+        <td><a href="/leads/{{ lead.id }}">{{ lead.id }}</a></td>
+        <td>{{ lead.full_name }}</td>
+        <td>{{ lead.company or "—" }}</td>
+        <td class="muted">{{ lead.email or lead.phone or "—" }}</td>
+        <td class="muted">{{ lead.source or "—" }}</td>
+        <td>{{ lead.readiness_score if lead.readiness_score is not none else "—" }}</td>
+        <td class="score">{{ lead.score }}</td>
+        <td><span class="pill {{ lead.tier.value }}">{{ lead.tier.value }}</span></td>
+        <td class="muted">{{ (lead.recommended_offers[0].name if lead.recommended_offers else "—") }}</td>
+        <td class="muted">{{ lead.status.value }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="10" class="muted">No leads yet. POST one to <code>/webhook/lead</code> or import a CSV.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

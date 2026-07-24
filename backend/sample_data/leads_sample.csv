@@ -1,0 +1,7 @@
+first_name,last_name,email,phone,company,job_title,website,industry,employees,annual_revenue,source,campaign,notes,readiness_score,readiness_tier
+Maria,Gomez,maria@apextech.com,(202) 555-0142,Apex Technologies LLC,Owner,https://apextech.com,IT Services,12,1800000,assessment,readiness-q3,Completed readiness assessment,58,Developing
+James,Carter,jcarter@bluerivers.co,555-0199,Blue Rivers Logistics,Managing Partner,,Logistics,25,4200000,referral,,Strong past performance,74,Contract-Ready
+Priya,Nair,priya@nairconsult.com,,Nair Consulting,Founder,https://nairconsult.com,Consulting,3,320000,assessment,readiness-q3,,36,Getting Started
+Tom,Becker,,703-555-0110,Becker Fabrication,President,,Manufacturing,40,7500000,linkedin,outreach,No email captured,82,Contract-Ready
+Maria,Gomez,maria@apextech.com,2025550142,Apex Technologies,Owner,,IT Services,12,1800000,webform,,Duplicate of Maria via web form,58,Developing
+Alan,Weiss,aweiss@weisspartners.com,555-0177,Weiss & Partners,Analyst,https://weisspartners.com,Professional Services,8,600000,coldlist,,Low seniority contact,,
