@@ -33,6 +33,7 @@
     { key: "paid",    label: "Paid",    pill: "green" },
     { key: "overdue", label: "Overdue", pill: "red" }
   ];
+  const COMPLIANCE_TYPES = ["Registration", "Certification", "Insurance", "License", "Wage Determination", "Clearance"];
 
   // ---------- State ----------
   let state = load();
@@ -48,7 +49,7 @@
   }
   function normalize(s) {
     s = s || {};
-    ["clients", "projects", "tasks", "invoices", "goals"].forEach((k) => {
+    ["clients", "projects", "tasks", "invoices", "goals", "compliance"].forEach((k) => {
       if (!Array.isArray(s[k])) s[k] = [];
     });
     return s;
@@ -130,9 +131,20 @@
     projects: { title: "Projects",  render: renderProjects },
     tasks:    { title: "Tasks",     render: renderTasks },
     finances: { title: "Finances",  render: renderFinances },
+    compliance: { title: "Compliance", render: renderCompliance },
     goals:    { title: "Goals",     render: renderGoals },
     playbook: { title: "Playbook",  render: renderPlaybook }
   };
+
+  // Status helper shared by the compliance view & alerts
+  function complianceStatus(expires) {
+    const d = daysUntil(expires);
+    if (d == null) return { d, cls: "gray", label: "No date" };
+    if (d < 0)     return { d, cls: "red",  label: "Expired" };
+    if (d <= 30)   return { d, cls: "red",  label: d + "d left" };
+    if (d <= 60)   return { d, cls: "amber", label: d + "d left" };
+    return { d, cls: "green", label: "Current" };
+  }
 
   function render() {
     const v = VIEWS[currentView] || VIEWS.overview;
@@ -304,6 +316,14 @@
       if (d != null && d < 0) out.push({ sort: d, pill: "red", badge: Math.abs(d) + "d late",
         title: t.title, sub: `Task · ${clientForTask(t)}`,
         onClick: () => openTaskForm(t.id) });
+    });
+    // Lapsed / expiring compliance items
+    state.compliance.forEach((c) => {
+      const s = complianceStatus(c.expires);
+      if (s.d != null && s.d <= 60) out.push({ sort: s.d - 2000, pill: s.cls === "green" ? "amber" : s.cls,
+        badge: s.d < 0 ? "Expired" : s.label,
+        title: c.name, sub: `${esc(c.type || "Compliance")} · ${s.d < 0 ? "expired " + Math.abs(s.d) + "d ago" : "expires " + fmtDate(c.expires)}`,
+        onClick: () => openComplianceForm(c.id) });
     });
     return out.sort((a, b) => a.sort - b.sort);
   }
@@ -531,6 +551,50 @@
     }
     panel.appendChild(body);
     root.appendChild(panel);
+  }
+
+  // ---------- Compliance ----------
+  function renderCompliance(root) {
+    const panel = el("div", "panel");
+    const head = el("div", "panel-head");
+    head.innerHTML = "<h2>Registrations, Certifications &amp; Renewals</h2>";
+    const add = el("button", "pill-btn", "＋ New renewal");
+    add.addEventListener("click", () => openComplianceForm());
+    head.appendChild(add);
+    panel.appendChild(head);
+
+    const body = el("div", "panel-body");
+    const rows = state.compliance
+      .filter((c) => matchesSearch([c.name, c.type, c.identifier].join(" ")))
+      .map((c) => ({ c, s: complianceStatus(c.expires) }))
+      .sort((a, b) => (a.s.d ?? 1e9) - (b.s.d ?? 1e9));
+
+    if (!rows.length) {
+      body.appendChild(el("div", "empty", searchTerm ? "No items match your search." : "Nothing tracked yet — add SAM.gov, insurance, certifications, wage determinations…"));
+    } else {
+      const table = el("table", "data");
+      table.innerHTML = `<thead><tr>
+        <th>Status</th><th>Item</th><th>Type</th><th>Identifier / Notes</th><th>Expires</th>
+      </tr></thead>`;
+      const tb = el("tbody");
+      rows.forEach(({ c, s }) => {
+        const tr = el("tr", "clickable");
+        tr.innerHTML = `
+          <td><span class="status-pill ${s.cls}">${esc(s.label)}</span></td>
+          <td><strong>${esc(c.name)}</strong></td>
+          <td>${esc(c.type || "—")}</td>
+          <td style="color:var(--muted)">${esc(c.identifier || "—")}</td>
+          <td>${fmtDate(c.expires)}</td>`;
+        tr.addEventListener("click", () => openComplianceForm(c.id));
+        tb.appendChild(tr);
+      });
+      table.appendChild(tb);
+      body.appendChild(table);
+    }
+    panel.appendChild(body);
+    root.appendChild(panel);
+    root.appendChild(el("div", "hint",
+      "Tip: SAM.gov registration must be renewed every 12 months to stay eligible for federal awards. Expiring items surface on the Overview."));
   }
 
   // ---------- Goals ----------
@@ -785,9 +849,26 @@
     });
   }
 
+  function openComplianceForm(id) {
+    const c = id ? state.compliance.find((x) => x.id === id) : {};
+    openForm({
+      title: id ? "Edit Renewal Item" : "New Renewal Item", collection: "compliance", noun: "item", deletable: !!id,
+      values: c,
+      fields: [
+        { name: "name", label: "Name", value: c.name, required: true, placeholder: "e.g. SAM.gov Registration", span: 2 },
+        { name: "type", label: "Type", type: "select", options: COMPLIANCE_TYPES.map((t) => `<option ${t === c.type ? "selected" : ""}>${t}</option>`).join("") },
+        { name: "expires", label: "Expires / renew by", type: "date", value: c.expires },
+        { name: "identifier", label: "Identifier / notes", value: c.identifier, span: 2, placeholder: "e.g. UEI / CAGE, policy #, WD revision" }
+      ],
+      coerce: (r, newId) => ({
+        id: newId, name: r.name.trim(), type: r.type, expires: r.expires, identifier: r.identifier.trim()
+      })
+    });
+  }
+
   const NEW_HANDLERS = {
     client: openClientForm, project: openProjectForm, task: openTaskForm,
-    invoice: openInvoiceForm, goal: openGoalForm
+    invoice: openInvoiceForm, compliance: openComplianceForm, goal: openGoalForm
   };
 
   // ---------- Modal utils ----------

@@ -62,6 +62,17 @@
       { id: "g2", title: "Active task orders",      current: 4,       target: 7,       unit: "",  due: iso(180) },
       { id: "g3", title: "On-time QC reports",      current: 92,      target: 100,     unit: "%", due: iso(90) },
       { id: "g4", title: "Cash reserve",            current: 68000,   target: 120000,  unit: "$", due: iso(240) }
+    ],
+
+    // Registrations, certifications, insurance & renewals that keep you eligible
+    compliance: [
+      { id: "r1", name: "SAM.gov Registration",              type: "Registration",       identifier: "UEI N7FFV5CGL1S4 · CAGE 143Y9",      expires: iso(38) },
+      { id: "r2", name: "General Liability Insurance",       type: "Insurance",           identifier: "Policy GLB-88213 · $2M / $4M — RENEW", expires: iso(-4) },
+      { id: "r3", name: "Workers' Compensation Insurance",   type: "Insurance",           identifier: "Policy WC-4471",                      expires: iso(76) },
+      { id: "r4", name: "SDVOSB Certification (SBA VetCert)", type: "Certification",       identifier: "Verified — SBA VetCert",             expires: iso(210) },
+      { id: "r5", name: "SCA Wage Determination (GA)",       type: "Wage Determination",  identifier: "WD 2015-4281, Rev. 27",               expires: iso(150) },
+      { id: "r6", name: "CMMC Level 1 Self-Assessment",      type: "Certification",       identifier: "Annual affirmation in SPRS",          expires: iso(95) },
+      { id: "r7", name: "Business License — City of Atlanta", type: "License",            identifier: "BL-2024-99123",                       expires: iso(120) }
     ]
   };
 
