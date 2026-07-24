@@ -1,5 +1,6 @@
-/* Seed data + reference content for GovBid Command.
-   Dates are computed relative to "today" so the demo always looks live. */
+/* Seed data + reference content for Command Center.
+   Dates are computed relative to "today" so the demo always looks live.
+   Everything here is fictional sample data — use "Reset demo" to restore it. */
 (function () {
   const DAY = 86400000;
   const today = new Date();
@@ -9,89 +10,75 @@
   };
 
   window.SEED = {
-    opportunities: [
-      { id: "op1", title: "IT Help Desk Support Services", agency: "Dept. of Veterans Affairs",
-        solicitation: "36C10X25Q0148", naics: "541519", setAside: "SDVOSB", value: 1850000,
-        stage: "bidding", dueDate: iso(4), probability: 65,
-        notes: "Incumbent contract expiring. Strong past performance at VISN 8. Need CMMC L2 attestation." },
-      { id: "op2", title: "Grounds Maintenance — Fort Liberty", agency: "Dept. of the Army",
-        solicitation: "W91247-25-R-0031", naics: "561730", setAside: "Small Business", value: 640000,
-        stage: "reviewing", dueDate: iso(12), probability: 40,
-        notes: "Site visit scheduled. Wage determination attached to solicitation." },
-      { id: "op3", title: "Cybersecurity Assessment & A&A Support", agency: "Dept. of Homeland Security",
-        solicitation: "70RCSA25R00000021", naics: "541512", setAside: "8(a)", value: 3200000,
-        stage: "submitted", dueDate: iso(-2), probability: 55,
-        notes: "Proposal submitted 6/2. Oral presentations expected next week." },
-      { id: "op4", title: "Medical Courier Services", agency: "Dept. of Veterans Affairs",
-        solicitation: "36C24825Q0410", naics: "492110", setAside: "SDVOSB", value: 420000,
-        stage: "identified", dueDate: iso(21), probability: 30,
-        notes: "New requirement. Confirm vehicle & driver certification requirements." },
-      { id: "op5", title: "Cloud Migration — Legacy Financial Systems", agency: "Dept. of the Treasury",
-        solicitation: "2032H825R00019", naics: "541511", setAside: "WOSB", value: 5400000,
-        stage: "bidding", dueDate: iso(2), probability: 50,
-        notes: "Teaming with a large business as sub. FedRAMP Moderate required." },
-      { id: "op6", title: "Janitorial Services — Federal Courthouse", agency: "General Services Administration",
-        solicitation: "47PA0525R0007", naics: "561720", setAside: "HUBZone", value: 280000,
-        stage: "won", dueDate: iso(-25), probability: 100,
-        notes: "Awarded 6/28. Transition-in begins first week of the period of performance." },
-      { id: "op7", title: "Language Translation Services", agency: "Dept. of State",
-        solicitation: "19AQMM25Q0233", naics: "541930", setAside: "Small Business", value: 960000,
-        stage: "lost", dueDate: iso(-40), probability: 0,
-        notes: "Lost on price. Requested debrief; awardee bid ~14% lower." },
-      { id: "op8", title: "UAS Sensor Integration R&D", agency: "Dept. of the Air Force",
-        solicitation: "FA8750-25-S-7012", naics: "541715", setAside: "", value: 2100000,
-        stage: "reviewing", dueDate: iso(9), probability: 35,
-        notes: "SBIR Phase II follow-on potential. Full & open — will need strong differentiators." }
+    clients: [
+      { id: "c1", name: "Amara Osei",   company: "Northwind Logistics",     status: "active", mrr: 4500, since: iso(-420), email: "amara@northwind.co",     notes: "Anchor account. Quarterly business review due next month." },
+      { id: "c2", name: "Daniel Reyes", company: "Reyes & Co. Legal",       status: "active", mrr: 2800, since: iso(-260), email: "d.reyes@reyeslegal.com", notes: "Expanding scope to include a second office." },
+      { id: "c3", name: "Priya Nair",   company: "Lumen Health",            status: "active", mrr: 3600, since: iso(-150), email: "priya@lumenhealth.io",   notes: "Compliance-sensitive; keep all deliverables documented." },
+      { id: "c4", name: "Tom Becker",   company: "Becker Fabrication",      status: "paused", mrr: 0,    since: iso(-540), email: "tom@beckerfab.com",     notes: "Paused for Q3 budget freeze. Revisit in September." },
+      { id: "c5", name: "Grace Lin",    company: "Harbor Coffee Roasters",  status: "lead",   mrr: 0,    since: iso(-12),  email: "grace@harborroast.com", notes: "Warm intro from Amara. Proposal sent, awaiting sign-off." },
+      { id: "c6", name: "Ike Adeyemi",  company: "Skyline Realty Group",    status: "active", mrr: 1900, since: iso(-95),  email: "ike@skylinerg.com",     notes: "Wants monthly reporting deck added to retainer." }
     ],
 
-    certifications: [
-      { id: "c1", name: "SAM.gov Registration", type: "Registration", expires: iso(38),
-        identifier: "UEI: X1Y2Z3ABC456 · CAGE: 8K9L2" },
-      { id: "c2", name: "SDVOSB Certification (VA CVE / SBA)", type: "Certification", expires: iso(210),
-        identifier: "Verified small business — VetCert" },
-      { id: "c3", name: "8(a) Business Development Program", type: "Certification", expires: iso(540),
-        identifier: "9-year program term" },
-      { id: "c4", name: "HUBZone Certification", type: "Certification", expires: iso(15),
-        identifier: "Recertification due — confirm principal office & 35% residency" },
-      { id: "c5", name: "CMMC Level 2 Assessment", type: "Certification", expires: iso(95),
-        identifier: "C3PAO assessment on file" },
-      { id: "c6", name: "General Liability Insurance", type: "Insurance", expires: iso(-5),
-        identifier: "Policy GLB-88213 — LAPSED, renew immediately" },
-      { id: "c7", name: "Facility Security Clearance (FCL)", type: "Clearance", expires: iso(300),
-        identifier: "Secret — DCSA sponsored" }
+    projects: [
+      { id: "p1", name: "Website relaunch",       clientId: "c1", status: "active",   progress: 70,  due: iso(9),   budget: 18000, notes: "Design approved. Dev sprint in progress." },
+      { id: "p2", name: "Brand identity refresh", clientId: "c3", status: "active",   progress: 45,  due: iso(21),  budget: 12000, notes: "Logo concepts due for review Friday." },
+      { id: "p3", name: "Q3 marketing campaign",  clientId: "c2", status: "blocked",  progress: 30,  due: iso(4),   budget: 9000,  notes: "Blocked on client-supplied ad copy." },
+      { id: "p4", name: "CRM migration",          clientId: "c6", status: "planning", progress: 10,  due: iso(38),  budget: 7500,  notes: "Data audit scheduled next week." },
+      { id: "p5", name: "Onboarding proposal",    clientId: "c5", status: "planning", progress: 20,  due: iso(6),   budget: 0,     notes: "Prospective — pending contract signature." },
+      { id: "p6", name: "Annual report design",   clientId: "c1", status: "done",     progress: 100, due: iso(-14), budget: 6000,  notes: "Delivered and invoiced." }
+    ],
+
+    tasks: [
+      { id: "t1",  title: "Send Q3 invoice to Northwind",    projectId: "p1",  priority: "high", status: "todo",  due: iso(-1) },
+      { id: "t2",  title: "Review logo concepts with Priya", projectId: "p2",  priority: "high", status: "todo",  due: iso(2) },
+      { id: "t3",  title: "Chase ad copy from Reyes & Co.",  projectId: "p3",  priority: "high", status: "doing", due: iso(0) },
+      { id: "t4",  title: "Draft CRM data-audit checklist",  projectId: "p4",  priority: "med",  status: "todo",  due: iso(5) },
+      { id: "t5",  title: "Follow up with Harbor Coffee",    projectId: "p5",  priority: "med",  status: "doing", due: iso(1) },
+      { id: "t6",  title: "Prep monthly reporting deck",     projectId: null,  priority: "med",  status: "todo",  due: iso(3) },
+      { id: "t7",  title: "Book quarterly review with Amara", projectId: "p1", priority: "low",  status: "todo",  due: iso(8) },
+      { id: "t8",  title: "Update website copy — homepage",  projectId: "p1",  priority: "med",  status: "doing", due: iso(-2) },
+      { id: "t9",  title: "Reconcile June expenses",         projectId: null,  priority: "low",  status: "done",  due: iso(-6) },
+      { id: "t10", title: "Renew design software licenses",  projectId: null,  priority: "low",  status: "done",  due: iso(-4) }
+    ],
+
+    invoices: [
+      { id: "i1", number: "INV-1042", clientId: "c1", amount: 6000, status: "paid",    issued: iso(-40), due: iso(-10) },
+      { id: "i2", number: "INV-1048", clientId: "c1", amount: 4500, status: "sent",    issued: iso(-8),  due: iso(7) },
+      { id: "i3", number: "INV-1049", clientId: "c2", amount: 2800, status: "overdue", issued: iso(-45), due: iso(-15) },
+      { id: "i4", number: "INV-1051", clientId: "c3", amount: 3600, status: "sent",    issued: iso(-5),  due: iso(10) },
+      { id: "i5", number: "INV-1052", clientId: "c6", amount: 1900, status: "paid",    issued: iso(-20), due: iso(-2) },
+      { id: "i6", number: "INV-1055", clientId: "c3", amount: 5400, status: "draft",   issued: iso(0),   due: iso(30) }
+    ],
+
+    goals: [
+      { id: "g1", title: "Monthly recurring revenue", current: 12800, target: 20000, unit: "$", due: iso(160) },
+      { id: "g2", title: "Active clients",            current: 4,     target: 8,     unit: "",  due: iso(160) },
+      { id: "g3", title: "New proposals sent (Q3)",   current: 3,     target: 10,    unit: "",  due: iso(60) },
+      { id: "g4", title: "Cash reserve",              current: 24000, target: 40000, unit: "$", due: iso(240) }
     ]
   };
 
-  window.SETASIDE_REFERENCE = [
-    { abbr: "SB", name: "Small Business Set-Aside",
-      desc: "Competition restricted to firms that meet the SBA size standard for the solicitation's NAICS code.",
-      points: ["Rule of Two: reserved when 2+ capable small businesses are expected to bid.",
-               "Size standard is set per NAICS (employees or annual receipts).",
-               "Foundation for most other set-aside programs."] },
-    { abbr: "8(a)", name: "8(a) Business Development",
-      desc: "Program for small firms owned by socially & economically disadvantaged individuals.",
-      points: ["Nine-year program term, non-renewable.",
-               "Eligible for sole-source awards up to threshold limits.",
-               "Requires ongoing SBA annual review."] },
-    { abbr: "WOSB", name: "Women-Owned Small Business",
-      desc: "For firms at least 51% owned and controlled by women, in eligible NAICS industries.",
-      points: ["EDWOSB variant adds an economic-disadvantage test.",
-               "Self-certify or use an SBA-approved third-party certifier.",
-               "Applies only in designated underrepresented industries."] },
-    { abbr: "HUBZone", name: "Historically Underutilized Business Zone",
-      desc: "Encourages economic development in designated HUBZone areas.",
-      points: ["Principal office must be in a HUBZone.",
-               "≥35% of employees must reside in a HUBZone.",
-               "Provides a 10% price evaluation preference in full & open bids."] },
-    { abbr: "SDVOSB", name: "Service-Disabled Veteran-Owned SB",
-      desc: "For firms at least 51% owned by one or more service-disabled veterans.",
-      points: ["Certified through SBA VetCert.",
-               "VA gives priority under the 'Vets First' contracting program.",
-               "Sole-source and set-aside authority available."] },
-    { abbr: "VOSB", name: "Veteran-Owned Small Business",
-      desc: "For veteran-owned firms; strongest advantage on VA acquisitions.",
-      points: ["Registered/verified via SBA VetCert.",
-               "VA 'Vets First' priority ahead of other set-asides.",
-               "Often paired with SDVOSB eligibility."] }
+  // Light operating guidance shown on the "Playbook" view.
+  window.PLAYBOOK = [
+    { abbr: "CASH", title: "Watch cash, not just revenue",
+      desc: "Revenue on paper isn't money in the bank. Track outstanding and overdue invoices weekly.",
+      points: ["Invoice the day work is delivered, not at month-end.",
+               "Chase anything overdue by 3+ days — a friendly nudge collects most of it.",
+               "Keep a reserve of 3–6 months of operating costs."] },
+    { abbr: "FOCUS", title: "Protect deep-work time",
+      desc: "Client work compounds; admin doesn't. Batch admin, guard maker time.",
+      points: ["Do the highest-leverage task first, before email.",
+               "Batch invoicing, scheduling, and follow-ups into one block.",
+               "Say no to scope that doesn't move a goal."] },
+    { abbr: "PIPE", title: "Keep the pipeline warm",
+      desc: "The best time to find the next client is before you need them.",
+      points: ["Send at least a few proposals every month, even when busy.",
+               "Ask happy clients for one intro each quarter.",
+               "Follow up on leads within 24 hours."] },
+    { abbr: "RENEW", title: "Never miss a renewal",
+      desc: "Retainers, licenses, and contracts lapse quietly. Put every date on the board.",
+      points: ["Add software and insurance renewals as low-priority tasks.",
+               "Schedule quarterly reviews with anchor clients.",
+               "Revisit paused accounts on their agreed restart date."] }
   ];
 })();
