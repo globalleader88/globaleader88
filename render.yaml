@@ -46,3 +46,11 @@ services:
         value: none
       - key: ENRICHMENT_PROVIDER
         value: none
+
+  # The static assessment funnel. Publishes only the funnel assets (not the
+  # backend source) into ./public. Its leadEndpoint is already wired to the API.
+  - type: web
+    name: leadengine-funnel
+    runtime: static
+    buildCommand: "mkdir -p public && cp -r index.html tracker.html css js assets public/"
+    staticPublishPath: ./public

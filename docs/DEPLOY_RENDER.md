@@ -56,18 +56,23 @@ In `js/assessment.js`, set:
 leadEndpoint: "https://<your-url>/webhook/lead?secret=<WEBHOOK_SECRET>"
 ```
 
-Deploy the static funnel anywhere (Render Static Site, Netlify, GitHub Pages, S3).
-Then completed assessments flow straight into the engine, already scored.
+The funnel is also deployed by this Blueprint as a **Render Static Site**
+(`leadengine-funnel`), publishing only the funnel assets into `./public`. Its URL
+looks like `https://leadengine-funnel.onrender.com` — that's the link you send to
+prospects. `leadEndpoint` is already wired to the API.
 
-## Production hardening (recommended)
+## Production hardening (do this before driving real traffic)
 
-- **Lock CORS:** set `CORS_ALLOW_ORIGINS` to your funnel's exact domain (not `*`).
-- **Upgrade Postgres:** the free database expires after 90 days — move to a paid
-  plan before real use.
+- **Upgrade the free tiers.** The **API sleeps after ~15 min idle** (first request
+  then waits ~50s), and the **free Postgres expires after 90 days**. For a live
+  business, upgrade both the `leadengine-api` service and `leadengine-db` to a paid
+  plan (a few $/month) so you never drop or delay a lead.
+- **Lock CORS:** set `CORS_ALLOW_ORIGINS` to the funnel's exact domain (not `*`).
 - **Create real users:** log in and `POST /api/users` to add per-person admin
   accounts; keep `ADMIN_*` as the bootstrap login only.
 - **Turn on integrations** by setting the `*_PROVIDER` vars and their config
-  (e.g. `EMAIL_PROVIDER=smtp` + `SMTP_*` + `HOT_LEAD_ALERT_TO` for hot-lead alerts).
+  (e.g. `EMAIL_PROVIDER=smtp` + `SMTP_*` + `HOT_LEAD_ALERT_TO` for hot-lead alerts,
+  so you get emailed the moment a hot lead comes in).
 
 ## Redeploys
 
