@@ -27,11 +27,12 @@ from app.main import app  # noqa: E402
 @pytest.fixture(autouse=True)
 def fresh_db():
     """Recreate all tables before each test for full isolation."""
-    from app.ratelimit import webhook_limiter
+    from app.ratelimit import auth_failure_limiter, webhook_limiter
 
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
-    webhook_limiter.reset()  # in-memory limiter is a global; clear per test
+    webhook_limiter.reset()  # in-memory limiters are globals; clear per test
+    auth_failure_limiter.reset()
     yield
     Base.metadata.drop_all(bind=engine)
 

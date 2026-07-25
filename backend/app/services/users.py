@@ -9,6 +9,10 @@ from sqlalchemy.orm import Session
 from ..models import User, UserRole
 from . import passwords
 
+# A fixed hash used to equalize timing when the email is unknown/inactive, so a
+# missing account isn't distinguishable from a wrong password (user enumeration).
+_DUMMY_HASH = passwords.hash_password("timing-equalizer-not-a-real-password")
+
 
 def get_by_email(db: Session, email: str) -> User | None:
     return db.execute(
@@ -45,6 +49,9 @@ def authenticate(db: Session, email: str, password: str) -> User | None:
     """Return the active user if the credentials are valid, else None."""
     user = get_by_email(db, email)
     if user is None or not user.active:
+        # Verify against a dummy hash so the response time doesn't reveal whether
+        # the account exists (mitigates user enumeration).
+        passwords.verify_password(password, _DUMMY_HASH)
         return None
     if not passwords.verify_password(password, user.password_hash):
         return None

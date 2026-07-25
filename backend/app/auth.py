@@ -32,6 +32,7 @@ from sqlalchemy.orm import Session
 from .config import get_settings
 from .database import get_db
 from .models import ApiKey, UserRole
+from .ratelimit import enforce_login_not_locked, record_login_failure
 from .services import apikeys, users
 
 settings = get_settings()
@@ -64,13 +65,16 @@ def _principal_from_basic(
 
 
 def require_admin(
+    request: Request,
     credentials: HTTPBasicCredentials = Depends(_basic),
     db: Session = Depends(get_db),
 ) -> str:
+    key = enforce_login_not_locked(request)
     principal = _principal_from_basic(
         credentials.username, credentials.password, db, need_admin=True
     )
     if principal is None:
+        record_login_failure(key)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid credentials",
@@ -80,14 +84,17 @@ def require_admin(
 
 
 def require_viewer(
+    request: Request,
     credentials: HTTPBasicCredentials = Depends(_basic),
     db: Session = Depends(get_db),
 ) -> str:
     """Any active user (viewer or admin), or the env bootstrap admin."""
+    key = enforce_login_not_locked(request)
     principal = _principal_from_basic(
         credentials.username, credentials.password, db, need_admin=False
     )
     if principal is None:
+        record_login_failure(key)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid credentials",
@@ -149,6 +156,7 @@ def require_api_scope(scope: str) -> Callable:
         if record is not None:
             return f"apikey:{record.prefix}"
         # Fall back to HTTP Basic (env admin or an active user).
+        key = enforce_login_not_locked(request)
         auth = request.headers.get("authorization", "")
         if auth.lower().startswith("basic "):
             import base64
@@ -161,6 +169,7 @@ def require_api_scope(scope: str) -> Callable:
             principal = _principal_from_basic(user, pw, db, need_admin=False)
             if principal is not None:
                 return principal
+        record_login_failure(key)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Requires a valid API key with scope "

@@ -37,6 +37,22 @@ class RateLimiter:
             q.append(now)
             return True
 
+    def over_limit(self, key: str, now: float | None = None) -> bool:
+        """Read-only: is ``key`` at/over the limit in the current window?"""
+        now = time.monotonic() if now is None else now
+        cutoff = now - self.window
+        with self._lock:
+            q = self._hits[key]
+            while q and q[0] < cutoff:
+                q.popleft()
+            return len(q) >= self.limit
+
+    def record(self, key: str, now: float | None = None) -> None:
+        """Record one event for ``key`` (used to count auth failures)."""
+        now = time.monotonic() if now is None else now
+        with self._lock:
+            self._hits[key].append(now)
+
     def reset(self) -> None:
         with self._lock:
             self._hits.clear()
@@ -44,6 +60,12 @@ class RateLimiter:
 
 webhook_limiter = RateLimiter(
     settings.webhook_rate_limit, settings.webhook_rate_window_seconds
+)
+
+# Throttles failed logins per client IP to blunt brute-force against HTTP Basic
+# (admin + user accounts). Only *failed* attempts are recorded.
+auth_failure_limiter = RateLimiter(
+    settings.auth_max_failures, settings.auth_fail_window_seconds
 )
 
 
@@ -63,3 +85,19 @@ def webhook_rate_limit(request: Request) -> None:
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail="Rate limit exceeded. Try again shortly.",
         )
+
+
+def enforce_login_not_locked(request: Request) -> str:
+    """Raise 429 if this IP has too many recent failed logins. Returns the key."""
+    key = _client_key(request)
+    if settings.rate_limit_enabled and auth_failure_limiter.over_limit(key):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many failed login attempts. Try again later.",
+        )
+    return key
+
+
+def record_login_failure(key: str) -> None:
+    if settings.rate_limit_enabled:
+        auth_failure_limiter.record(key)

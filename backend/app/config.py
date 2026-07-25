@@ -57,6 +57,9 @@ class Settings(BaseSettings):
     rate_limit_enabled: bool = True
     webhook_rate_limit: int = 60
     webhook_rate_window_seconds: int = 60
+    # Failed-login throttle for HTTP Basic (admin + user accounts), per client IP.
+    auth_max_failures: int = 10
+    auth_fail_window_seconds: int = 300
 
     # --- Integrations (Phase 2) ----------------------------------------
     # Provider selection. "none"/"log" keep everything self-contained (no
