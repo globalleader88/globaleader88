@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import get_settings
 from .database import SessionLocal, init_db
-from .routers import analytics, apikeys, dashboard, leads, users, webhook
+from .routers import analytics, apikeys, dashboard, leads, prospects, users, webhook
 from .services import users as users_service
 
 settings = get_settings()
@@ -77,6 +77,7 @@ app.include_router(webhook.router)
 app.include_router(apikeys.router)
 app.include_router(analytics.router)
 app.include_router(users.router)
+app.include_router(prospects.router)
 
 
 @app.get("/health", tags=["system"])
