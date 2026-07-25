@@ -18,8 +18,11 @@ services:
     dockerContext: ./backend
     plan: free
     healthCheckPath: /health
-    # Run migrations, then serve on the port Render assigns.
-    dockerCommand: "/bin/sh -c 'alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}'"
+    # Run migrations, then serve on the port Render assigns. Render already runs
+    # this through a shell, so give it a plain command (no `sh -c` wrapper, no
+    # single quotes) — otherwise the wrappers collide and the whole line is
+    # treated as one command ("not found").
+    dockerCommand: "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT"
     envVars:
       - key: DATABASE_URL
         fromDatabase:
