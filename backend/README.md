@@ -10,6 +10,12 @@ funnel in the repository root: point that funnel's `CONFIG.leadEndpoint`
 
 ---
 
+## Deploy to production
+
+One-click deploy to Render via the repo's Blueprint (`render.yaml`) — provisions
+Postgres + the API, runs migrations, generates secrets. See
+[`docs/DEPLOY_RENDER.md`](../docs/DEPLOY_RENDER.md).
+
 ## Quick start (Docker — recommended)
 
 Requires Docker + Docker Compose.
