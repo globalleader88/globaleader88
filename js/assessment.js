@@ -33,7 +33,7 @@ window.CONFIG = {
   //
   // Leave "" to run in demo mode: leads are saved in the browser and viewable
   // via the "View captured leads" link in the footer.
-  leadEndpoint: ""
+  leadEndpoint: "https://leadengine-api.onrender.com/webhook/lead?secret=zbqQpP6LPtgUFW7HTjdhDF7YOUohg9TcrmXBwPBl43I="
 };
 
 /* Each question scores 0–100 on a category. Category scores are averaged,
