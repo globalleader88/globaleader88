@@ -73,8 +73,16 @@ Legend: ✅ done · ⬜ not started
       compose + migration verified statically instead
 - ⬜ Set `CONFIG.leadEndpoint` to the deployed webhook URL (deploy-time step)
 
-### Increment 3+ — more live providers & scale (NOT STARTED)
-- ⬜ Real user accounts (beyond admin basic auth)
+### Increment 3 — real user accounts (COMPLETE)
+- ✅ `User` model + PBKDF2 password hashing (`services/passwords.py`, stdlib-only)
+- ✅ Alembic migration for the `users` table
+- ✅ HTTP Basic authenticates against the users table with role enforcement
+      (`require_admin` / `require_viewer`); env admin kept as bootstrap login +
+      seeded on startup
+- ✅ Users management API (`/api/users`, admin-only CRUD, soft-delete)
+- ✅ Tests (16 new; 85 total, all passing)
+
+### Increment 4+ — more live providers & scale (NOT STARTED)
 - ⬜ Live email/notification (SendGrid/SES) via the email seam; hot-lead alerts
 - ⬜ Lead enrichment (firmographics, SAM.gov) via the enrichment seam
 - ⬜ Native CRM providers (GoHighLevel/HubSpot) beyond the generic webhook

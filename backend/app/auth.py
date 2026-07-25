@@ -13,6 +13,12 @@ Phase 2 (added):
 Precedence for protected endpoints: a valid API key with the required scope, OR
 the legacy credential (admin basic / webhook secret). This lets Phase 2 roll out
 without breaking existing callers.
+
+Increment 3 adds real user accounts: HTTP Basic now authenticates against the
+``users`` table (email + PBKDF2 password) with role enforcement
+(``require_admin`` needs the admin role; ``require_viewer`` accepts any active
+user). The env ADMIN_USERNAME/ADMIN_PASSWORD remain a permanent bootstrap login
+so a fresh deploy can sign in and create the first real accounts.
 """
 from __future__ import annotations
 
@@ -25,25 +31,69 @@ from sqlalchemy.orm import Session
 
 from .config import get_settings
 from .database import get_db
-from .models import ApiKey
-from .services import apikeys
+from .models import ApiKey, UserRole
+from .services import apikeys, users
 
 settings = get_settings()
 _basic = HTTPBasic(auto_error=True)
 
 
+def _principal_from_basic(
+    username: str, password: str, db: Session, *, need_admin: bool
+) -> str | None:
+    """Resolve HTTP Basic credentials to a principal string, or None.
+
+    Two accepted sources, in order:
+      1. The env bootstrap admin (ADMIN_USERNAME/ADMIN_PASSWORD) — always admin.
+      2. A real, active user in the ``users`` table (email + password).
+    Raises 403 if ``need_admin`` and the matched user lacks the admin role.
+    """
+    if secrets.compare_digest(username, settings.admin_username) and secrets.compare_digest(
+        password, settings.admin_password
+    ):
+        return f"admin:{username}"
+    user = users.authenticate(db, username, password)
+    if user is None:
+        return None
+    if need_admin and user.role != UserRole.admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Requires admin role",
+        )
+    return f"user:{user.email}"
+
+
 def require_admin(
     credentials: HTTPBasicCredentials = Depends(_basic),
+    db: Session = Depends(get_db),
 ) -> str:
-    ok_user = secrets.compare_digest(credentials.username, settings.admin_username)
-    ok_pass = secrets.compare_digest(credentials.password, settings.admin_password)
-    if not (ok_user and ok_pass):
+    principal = _principal_from_basic(
+        credentials.username, credentials.password, db, need_admin=True
+    )
+    if principal is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid admin credentials",
+            detail="Invalid credentials",
             headers={"WWW-Authenticate": "Basic"},
         )
-    return credentials.username
+    return principal
+
+
+def require_viewer(
+    credentials: HTTPBasicCredentials = Depends(_basic),
+    db: Session = Depends(get_db),
+) -> str:
+    """Any active user (viewer or admin), or the env bootstrap admin."""
+    principal = _principal_from_basic(
+        credentials.username, credentials.password, db, need_admin=False
+    )
+    if principal is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid credentials",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+    return principal
 
 
 def _extract_api_key(request: Request) -> str | None:
@@ -98,7 +148,7 @@ def require_api_scope(scope: str) -> Callable:
         record = _valid_api_key(request, db, scope=scope)
         if record is not None:
             return f"apikey:{record.prefix}"
-        # Fall back to admin HTTP Basic.
+        # Fall back to HTTP Basic (env admin or an active user).
         auth = request.headers.get("authorization", "")
         if auth.lower().startswith("basic "):
             import base64
@@ -108,10 +158,9 @@ def require_api_scope(scope: str) -> Callable:
                 user, _, pw = raw.partition(":")
             except Exception:  # noqa: BLE001
                 user = pw = ""
-            if secrets.compare_digest(user, settings.admin_username) and secrets.compare_digest(
-                pw, settings.admin_password
-            ):
-                return f"admin:{user}"
+            principal = _principal_from_basic(user, pw, db, need_admin=False)
+            if principal is not None:
+                return principal
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Requires a valid API key with scope "

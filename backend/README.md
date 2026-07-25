@@ -109,6 +109,10 @@ Admin (HTTP Basic auth):
 | GET    | `/api/keys`               | List API keys (no secrets)       |
 | DELETE | `/api/keys/{id}`          | Revoke an API key                |
 | GET    | `/api/analytics/summary`  | Aggregated lead analytics        |
+| POST   | `/api/users`              | Create a user (admin/viewer)     |
+| GET    | `/api/users`              | List users (no password data)    |
+| PATCH  | `/api/users/{id}`         | Change a user's role / active    |
+| DELETE | `/api/users/{id}`         | Deactivate a user                |
 
 System:
 
@@ -180,6 +184,23 @@ curl -u admin:PASSWORD -X POST http://localhost:8000/api/keys \
 Use it via `Authorization: Bearer gcle_...` or `X-API-Key: gcle_...`. Scopes:
 `webhook`, `leads:read`, `leads:write`, `analytics:read`, or `*` for all. The
 legacy webhook secret and admin basic auth still work.
+
+### User accounts & roles
+
+Real accounts replace the single shared admin password. HTTP Basic now
+authenticates against the `users` table (email + PBKDF2-hashed password) with two
+roles: `admin` (manage users/keys, mutate) and `viewer` (read). The env
+`ADMIN_USERNAME`/`ADMIN_PASSWORD` remain a **bootstrap login** and seed the first
+admin on startup, so a fresh deploy can sign in and then create real users:
+
+```bash
+curl -u admin:PASSWORD -X POST http://localhost:8000/api/users \
+  -H "Content-Type: application/json" \
+  -d '{"email":"jane@theglobalconnects.com","password":"a-strong-password","role":"admin"}'
+```
+
+Manage accounts via `/api/users` (create, list, `PATCH` role/active,
+`DELETE` = deactivate). Passwords are never returned or logged.
 
 ### Integration seams
 
