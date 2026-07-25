@@ -224,6 +224,12 @@ settings (works with Gmail, Amazon SES SMTP, Mailgun, Postmark, …). Hot leads
 set `SEND_WELCOME_EMAIL=true` to also send the prospect a confirmation. Same
 guarantees: through the seam + queue, failures never break intake.
 
+**Real provider — HTTP enrichment.** Set `ENRICHMENT_PROVIDER=webhook` and
+`ENRICHMENT_WEBHOOK_URL=...` to POST each lead to an enrichment endpoint and
+merge the returned firmographics (industry, employees, annual_revenue, website,
+job_title) into **empty fields only** — enrichment augments, never overwrites.
+Point it at Clearbit-via-Zapier, a SAM.gov proxy, or your own service.
+
 ### Background job queue
 
 Post-intake side effects run via a pluggable queue (`services/jobs.py`), chosen

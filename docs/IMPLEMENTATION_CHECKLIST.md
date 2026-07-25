@@ -90,8 +90,16 @@ Legend: ✅ done · ⬜ not started
       logged as `integration_error`, never break intake
 - ✅ Tests with a fake SMTP transport (8 new; 93 total, all passing)
 
-### Increment 5+ — remaining providers & scale (NOT STARTED)
-- ⬜ Live enrichment (firmographics, SAM.gov) via the enrichment seam
+### Increment 5 — live HTTP enrichment provider (COMPLETE)
+- ✅ `HttpEnricher` on the enrichment seam (`ENRICHMENT_PROVIDER=webhook`,
+      `ENRICHMENT_WEBHOOK_URL`): POSTs the lead, merges returned firmographics
+      into empty fields only (never overwrites); through seam + queue; failures
+      logged, never break intake
+- ✅ All three seams (CRM, email, enrichment) now have a real provider
+- ✅ Tests with mocked httpx (6 new; 99 total, all passing)
+
+### Increment 6+ — scale & polish (NOT STARTED)
+- ⬜ Re-score a lead after enrichment fills firmographics
 - ⬜ Lead enrichment (firmographics, SAM.gov) via the enrichment seam
 - ⬜ Native CRM providers (GoHighLevel/HubSpot) beyond the generic webhook
 - ⬜ Automated nurture sequences & booking (Calendly) round-trip

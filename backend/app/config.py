@@ -72,6 +72,11 @@ class Settings(BaseSettings):
     crm_webhook_url: str | None = None
     crm_webhook_timeout_seconds: float = 5.0
 
+    # HTTP enrichment provider (ENRICHMENT_PROVIDER=webhook). POSTs the lead to
+    # this URL and merges returned firmographic fields into empty lead fields.
+    enrichment_webhook_url: str | None = None
+    enrichment_webhook_timeout_seconds: float = 5.0
+
     # SMTP email provider (EMAIL_PROVIDER=smtp). Sends hot-lead alerts to the
     # sales team and (optionally) a welcome email to the prospect.
     smtp_host: str | None = None
