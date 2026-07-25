@@ -1,7 +1,7 @@
 """API key management (admin-authenticated)."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -44,6 +44,7 @@ def revoke_key(
     key_id: int,
     db: Session = Depends(get_db),
     _: str = Depends(require_admin),
-) -> None:
+) -> Response:
     if not apikeys.revoke_key(db, key_id):
         raise HTTPException(status_code=404, detail="API key not found")
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
