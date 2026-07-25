@@ -37,6 +37,8 @@ Legend: ✅ done · ⬜ not started
 - ✅ Seed script + sample data (`scripts/seed.py`, `sample_data/`)
 - ✅ Test suite (37 tests, pytest, SQLite) — all passing
 - ✅ Setup documentation (`backend/README.md`)
+- ✅ Continuous integration (`.github/workflows/ci.yml` runs pytest on push/PR)
+- ✅ Developer `Makefile` (install / test / run / seed / docker targets)
 
 ## Phase 2 — Integrations & hardening (NOT STARTED)
 - ⬜ Alembic migrations (replace `create_all`)
