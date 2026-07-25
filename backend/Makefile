@@ -2,7 +2,7 @@
 # Usage: `make <target>` from the backend/ directory.
 
 .DEFAULT_GOAL := help
-.PHONY: help install test run seed docker docker-down lint clean
+.PHONY: help install test run seed migrate migration docker docker-down lint clean
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -21,6 +21,14 @@ run: ## Run the API locally with autoreload (SQLite by default)
 seed: ## Load the sample leads
 	DATABASE_URL=$${DATABASE_URL:-sqlite:///./leadengine.db} \
 		python3 -m scripts.seed
+
+migrate: ## Apply Alembic migrations (upgrade head)
+	DATABASE_URL=$${DATABASE_URL:-sqlite:///./leadengine.db} \
+		python3 -m alembic upgrade head
+
+migration: ## Autogenerate a migration: make migration m="add x"
+	DATABASE_URL=$${DATABASE_URL:-sqlite:///./leadengine.db} \
+		python3 -m alembic revision --autogenerate -m "$(m)"
 
 docker: ## Build and start Postgres + API via docker-compose
 	docker compose up --build

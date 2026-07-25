@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session
 from ..auth import require_webhook_secret
 from ..config import get_settings
 from ..database import get_db
+from ..ratelimit import webhook_rate_limit
 from ..schemas import IntakeResult, LeadCreate, LeadOut
 from ..services import intake
 
@@ -78,7 +79,11 @@ def _normalize_payload(raw: dict[str, Any]) -> dict[str, Any]:
     return clean
 
 
-@router.post("/lead", response_model=IntakeResult, dependencies=[Depends(require_webhook_secret)])
+@router.post(
+    "/lead",
+    response_model=IntakeResult,
+    dependencies=[Depends(webhook_rate_limit), Depends(require_webhook_secret)],
+)
 async def website_lead(
     request: Request,
     db: Session = Depends(get_db),

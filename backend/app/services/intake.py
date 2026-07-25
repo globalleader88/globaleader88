@@ -10,7 +10,7 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from ..models import Lead, LeadEvent, LeadStatus, LeadTier
-from . import dedup, offers, scoring
+from . import dedup, integrations, offers, scoring
 
 
 def _log(db: Session, lead: Lead, kind: str, message: str) -> None:
@@ -66,5 +66,11 @@ def process_lead(
         )
 
     db.commit()
+    db.refresh(lead)
+
+    # Phase 2: fire integration side effects (notifications, CRM sync, email,
+    # enrichment) via clean interfaces. Defaults make no external calls and
+    # never break intake. Still part of the single intake path.
+    integrations.dispatch_post_intake(db, lead, is_duplicate)
     db.refresh(lead)
     return lead, is_duplicate

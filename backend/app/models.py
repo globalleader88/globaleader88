@@ -100,6 +100,33 @@ class Lead(Base):
         return " ".join(parts) if parts else "(no name)"
 
 
+class ApiKey(Base):
+    """A hashed API key for programmatic access (Phase 2 auth).
+
+    The plaintext key is shown exactly once at creation. Only its SHA-256 hash
+    is stored, plus a short non-secret prefix to help identify keys in the UI.
+    Scopes are a comma-separated list, e.g. "webhook,leads:read,leads:write".
+    """
+
+    __tablename__ = "api_keys"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(120))
+    prefix: Mapped[str] = mapped_column(String(16), index=True)
+    key_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    scopes: Mapped[str] = mapped_column(String(255), default="")
+    active: Mapped[bool] = mapped_column(default=True)
+    created_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    last_used_at: Mapped[dt.datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+    def scope_list(self) -> list[str]:
+        return [s.strip() for s in (self.scopes or "").split(",") if s.strip()]
+
+
 class LeadEvent(Base):
     """Lightweight audit trail: intake, scoring, dedup, status changes."""
 

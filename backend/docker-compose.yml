@@ -31,8 +31,13 @@ services:
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-changeme}
       WEBHOOK_SECRET: ${WEBHOOK_SECRET:-dev-webhook-secret}
       ENVIRONMENT: ${ENVIRONMENT:-production}
+      # Production manages schema via Alembic (see command below), not create_all.
+      AUTO_CREATE_TABLES: "false"
+      CORS_ALLOW_ORIGINS: ${CORS_ALLOW_ORIGINS:-*}
     ports:
       - "8000:8000"
+    # Apply migrations, then serve.
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
 
 volumes:
   pgdata:

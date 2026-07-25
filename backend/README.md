@@ -105,6 +105,10 @@ Admin (HTTP Basic auth):
 | PATCH  | `/api/leads/{id}`         | Update lead fields / status      |
 | GET    | `/api/leads/export.csv`   | Export all leads as CSV          |
 | POST   | `/api/leads/import`       | Import leads from a CSV upload   |
+| POST   | `/api/keys`               | Create a scoped API key          |
+| GET    | `/api/keys`               | List API keys (no secrets)       |
+| DELETE | `/api/keys/{id}`          | Revoke an API key                |
+| GET    | `/api/analytics/summary`  | Aggregated lead analytics        |
 
 System:
 
@@ -142,6 +146,60 @@ most form/CRM payloads work without reshaping.
 - **Single intake path** (`services/intake.py`): API, webhook, and CSV import all
   run the same dedup → score → recommend → persist pipeline and log an audit
   event.
+
+## Phase 2 features
+
+Phase 1 is unchanged; Phase 2 (Increment 1) adds a security/infra foundation and
+clean integration seams — all self-contained (no third-party accounts required).
+
+### Database migrations (Alembic)
+
+Schema is now managed by Alembic. Production applies migrations on startup
+(`docker compose` runs `alembic upgrade head` before serving). Locally:
+
+```bash
+make migrate                      # alembic upgrade head
+make migration m="add lead tags"  # autogenerate a new revision, then review it
+```
+
+For zero-setup local dev and tests, `AUTO_CREATE_TABLES=true` (the default)
+still creates tables directly; set it to `false` in production.
+
+### API keys (scoped)
+
+Real, hashed API keys replace the need to share the admin password or webhook
+secret with integrations. Create one as an admin:
+
+```bash
+curl -u admin:PASSWORD -X POST http://localhost:8000/api/keys \
+  -H "Content-Type: application/json" \
+  -d '{"name":"funnel","scopes":["webhook","analytics:read"]}'
+# -> {"api_key":"gcle_....","...":...}   (shown once — store it now)
+```
+
+Use it via `Authorization: Bearer gcle_...` or `X-API-Key: gcle_...`. Scopes:
+`webhook`, `leads:read`, `leads:write`, `analytics:read`, or `*` for all. The
+legacy webhook secret and admin basic auth still work.
+
+### Integration seams
+
+`services/integrations.py` defines `Notifier`, `CRMSync`, `EmailSender`, and
+`Enricher` interfaces. The single intake path calls `dispatch_post_intake` after
+persisting a lead. Defaults make **no external calls** — they record a
+`LeadEvent` so the action is visible on the lead page. Add a real provider by
+implementing the Protocol, registering it in the provider map, and selecting it
+via `CRM_PROVIDER` / `EMAIL_PROVIDER` / `ENRICHMENT_PROVIDER`.
+
+### Rate limiting & CORS
+
+The public webhook is rate-limited per client IP (`WEBHOOK_RATE_LIMIT` per
+`WEBHOOK_RATE_WINDOW_SECONDS`). CORS origins are configurable via
+`CORS_ALLOW_ORIGINS` (lock to the funnel's domain in production).
+
+### Analytics
+
+`GET /api/analytics/summary` (scope `analytics:read` or admin) returns counts by
+tier/status/source, average score, and the most-recommended offers.
 
 ## Configuration
 

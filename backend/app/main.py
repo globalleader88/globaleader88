@@ -8,16 +8,17 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import get_settings
 from .database import init_db
-from .routers import dashboard, leads, webhook
+from .routers import analytics, apikeys, dashboard, leads, webhook
 
 settings = get_settings()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Create tables on startup. In production you'd manage schema with Alembic
-    # migrations (Phase 2); create_all is safe and idempotent for Phase 1.
-    init_db()
+    # Production manages schema with Alembic migrations (`alembic upgrade head`).
+    # For local dev / tests we auto-create tables for a zero-setup boot.
+    if settings.auto_create_tables:
+        init_db()
     yield
 
 
@@ -28,10 +29,11 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Allow the static assessment site to POST leads cross-origin.
+# Allow the static assessment site to POST leads cross-origin. Origins are
+# configurable (Phase 2): permissive in dev, locked to the funnel in prod.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Phase 2: restrict to the site's domain.
+    allow_origins=settings.cors_origins_list,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -39,6 +41,8 @@ app.add_middleware(
 app.include_router(dashboard.router)
 app.include_router(leads.router)
 app.include_router(webhook.router)
+app.include_router(apikeys.router)
+app.include_router(analytics.router)
 
 
 @app.get("/health", tags=["system"])

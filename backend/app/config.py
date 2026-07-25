@@ -42,6 +42,39 @@ class Settings(BaseSettings):
     # this threshold (0-100). Email/phone exact matches always win.
     dedup_threshold: int = 85
 
+    # --- Schema management ---------------------------------------------
+    # In production, schema is managed by Alembic migrations. For local dev and
+    # the test suite we auto-create tables on startup for zero-setup boot.
+    auto_create_tables: bool = True
+
+    # --- CORS (Phase 2) -------------------------------------------------
+    # Comma-separated list of allowed origins for the funnel. "*" allows all
+    # (fine for dev; set to the funnel's domain in production).
+    cors_allow_origins: str = "*"
+
+    # --- Rate limiting (Phase 2) ---------------------------------------
+    # Public webhook: max requests per client IP within the window (seconds).
+    rate_limit_enabled: bool = True
+    webhook_rate_limit: int = 60
+    webhook_rate_window_seconds: int = 60
+
+    # --- Integrations (Phase 2) ----------------------------------------
+    # Provider selection. "none"/"log" keep everything self-contained (no
+    # external calls). Real providers (e.g. "gohighlevel", "sendgrid") plug in
+    # later behind the same interfaces and read their own *_API_KEY settings.
+    crm_provider: str = "none"
+    email_provider: str = "none"
+    enrichment_provider: str = "none"
+    # Fire an internal notification when a lead scores at/above this.
+    hot_lead_notify_threshold: int = 70
+
+    @property
+    def cors_origins_list(self) -> list[str]:
+        raw = self.cors_allow_origins.strip()
+        if raw == "*" or not raw:
+            return ["*"]
+        return [o.strip() for o in raw.split(",") if o.strip()]
+
     @property
     def resolved_database_url(self) -> str:
         if self.database_url:

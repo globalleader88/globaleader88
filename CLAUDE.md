@@ -80,6 +80,21 @@ Phase 1 (done): intake API, Postgres, lead profile, CSV import/export, dedup,
 scoring, offer recommendations, admin dashboard, website webhook, Docker, env
 template, tests, docs.
 
-Phase 2 (not started): Alembic migrations, real user auth / API keys, CRM &
-email integrations, lead enrichment, automated nurture, analytics, background
-jobs, rate limiting, and restricting CORS to the funnel's domain.
+Phase 2 (in progress):
+- **Increment 1 (done):** Alembic migrations (schema source of truth; prod runs
+  `alembic upgrade head`), hashed API-key auth with scopes
+  (`app/services/apikeys.py`, `require_api_scope`), integration seams behind
+  clean interfaces with self-contained defaults (`app/services/integrations.py`,
+  dispatched from the single intake path), public-webhook rate limiting
+  (`app/ratelimit.py`), configurable CORS, and an analytics summary endpoint.
+- **Remaining:** real user accounts, live CRM/email/enrichment providers plugged
+  into the existing seams, automated nurture, background job queue (move
+  `dispatch_post_intake` off the request path), and richer analytics.
+
+### Phase 2 rules
+- New external providers implement the Protocols in `services/integrations.py`
+  and register in the provider maps; **never** call a third-party API from the
+  intake path directly. Selection is via `*_PROVIDER` env settings.
+- Every schema change ships an Alembic migration (`make migration m="..."`).
+  Do not add columns without one. Tests still create tables directly (SQLite).
+- API keys are hashed (SHA-256) and shown once. Never log or store plaintext.

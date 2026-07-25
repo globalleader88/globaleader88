@@ -40,15 +40,28 @@ Legend: ✅ done · ⬜ not started
 - ✅ Continuous integration (`.github/workflows/ci.yml` runs pytest on push/PR)
 - ✅ Developer `Makefile` (install / test / run / seed / docker targets)
 
-## Phase 2 — Integrations & hardening (NOT STARTED)
-- ⬜ Alembic migrations (replace `create_all`)
-- ⬜ Real authentication: user accounts + per-integration API keys / JWT
-- ⬜ Restrict CORS to the funnel domain; rate limiting on the webhook
-- ⬜ CRM sync (e.g. GoHighLevel/HubSpot) + email/notification on hot leads
-- ⬜ Lead enrichment (firmographics, SAM.gov lookup)
+## Phase 2 — Integrations & hardening (IN PROGRESS)
+
+### Increment 1 — foundation (COMPLETE)
+- ✅ Alembic migrations (replace `create_all`; prod runs `alembic upgrade head`)
+- ✅ API-key authentication: hashed keys + scopes + management API
+      (`services/apikeys.py`, `routers/apikeys.py`, `require_api_scope`)
+- ✅ Restrict CORS to configurable origins; rate limiting on the webhook
+      (`ratelimit.py`)
+- ✅ Integration seams (CRM/email/enrichment/notifications) behind clean
+      interfaces with self-contained defaults, dispatched from the single intake
+      path (`services/integrations.py`) — no external calls yet
+- ✅ Analytics summary endpoint (`/api/analytics/summary`)
+- ✅ Tests for all of the above (20 new; 57 total, all passing)
+
+### Increment 2+ — live providers & scale (NOT STARTED)
+- ⬜ Real user accounts (beyond admin basic auth)
+- ⬜ Live CRM sync (GoHighLevel/HubSpot) via the CRM seam
+- ⬜ Live email/notification (SendGrid/SES) via the email seam; hot-lead alerts
+- ⬜ Lead enrichment (firmographics, SAM.gov) via the enrichment seam
 - ⬜ Automated nurture sequences & booking (Calendly) round-trip
-- ⬜ Analytics / reporting dashboard, conversion tracking
-- ⬜ Background job queue for async processing
+- ⬜ Background job queue — move `dispatch_post_intake` off the request path
+- ⬜ Analytics/reporting dashboard UI, conversion tracking
 - ⬜ Point the frontend `CONFIG.leadEndpoint` at the deployed webhook
 
 ## Phase 3+ — Ideas

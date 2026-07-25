@@ -96,3 +96,37 @@ class ImportSummary(BaseModel):
     duplicates: int
     errors: int
     error_details: list[str] = Field(default_factory=list)
+
+
+# --- API keys (Phase 2) -------------------------------------------------
+class ApiKeyCreate(BaseModel):
+    name: str
+    scopes: list[str] = Field(default_factory=list)
+
+
+class ApiKeyOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    name: str
+    prefix: str
+    scopes: str
+    active: bool
+    created_at: dt.datetime
+    last_used_at: dt.datetime | None = None
+
+
+class ApiKeyCreated(ApiKeyOut):
+    # The plaintext key, returned exactly once at creation time.
+    api_key: str
+
+
+# --- Analytics (Phase 2) ------------------------------------------------
+class AnalyticsSummary(BaseModel):
+    total_leads: int
+    active_leads: int
+    duplicates: int
+    avg_score: float
+    by_tier: dict[str, int]
+    by_status: dict[str, int]
+    by_source: dict[str, int]
+    top_offers: list[dict[str, Any]]
