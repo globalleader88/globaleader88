@@ -87,9 +87,14 @@ Phase 2 (in progress):
   clean interfaces with self-contained defaults (`app/services/integrations.py`,
   dispatched from the single intake path), public-webhook rate limiting
   (`app/ratelimit.py`), configurable CORS, and an analytics summary endpoint.
-- **Remaining:** real user accounts, live CRM/email/enrichment providers plugged
-  into the existing seams, automated nurture, background job queue (move
-  `dispatch_post_intake` off the request path), and richer analytics.
+- **Increment 2 (done):** pluggable background job queue (`app/services/jobs.py`;
+  `inline`/`thread`, selected by `JOB_QUEUE`) so post-intake dispatch runs off
+  the request path, and the first real integration — a generic outbound-webhook
+  CRM (`CRM_PROVIDER=webhook` + `CRM_WEBHOOK_URL`) posting leads to any Zapier/
+  Make/GoHighLevel inbound hook, still routed through the seam and queue.
+- **Remaining:** real user accounts, live email/enrichment providers on the
+  existing seams, automated nurture, a durable broker (Celery/RQ) behind the
+  `JobQueue` interface, and richer analytics.
 
 ### Phase 2 rules
 - New external providers implement the Protocols in `services/integrations.py`

@@ -68,9 +68,10 @@ def process_lead(
     db.commit()
     db.refresh(lead)
 
-    # Phase 2: fire integration side effects (notifications, CRM sync, email,
-    # enrichment) via clean interfaces. Defaults make no external calls and
-    # never break intake. Still part of the single intake path.
-    integrations.dispatch_post_intake(db, lead, is_duplicate)
+    # Phase 2: hand integration side effects (notifications, CRM sync, email,
+    # enrichment) to the job queue via clean interfaces. Defaults make no
+    # external calls and never break intake. The enqueue call is the single
+    # intake path's one hand-off point; inline mode runs it synchronously.
+    integrations.enqueue_post_intake(lead, is_duplicate)
     db.refresh(lead)
     return lead, is_duplicate

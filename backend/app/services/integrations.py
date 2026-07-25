@@ -18,7 +18,9 @@ from typing import Protocol, runtime_checkable
 from sqlalchemy.orm import Session
 
 from ..config import get_settings
+from ..database import SessionLocal
 from ..models import Lead, LeadEvent
+from .jobs import enqueue
 
 settings = get_settings()
 
@@ -71,10 +73,60 @@ class NullEnricher:
         return None
 
 
+# --- First real provider: generic outbound webhook CRM ------------------
+def _lead_payload(lead: Lead) -> dict:
+    """A stable, provider-agnostic representation of a lead for outbound sync."""
+    return {
+        "id": lead.id,
+        "first_name": lead.first_name,
+        "last_name": lead.last_name,
+        "email": lead.email,
+        "phone": lead.phone,
+        "company": lead.company,
+        "job_title": lead.job_title,
+        "source": lead.source,
+        "campaign": lead.campaign,
+        "score": lead.score,
+        "tier": lead.tier.value if lead.tier else None,
+        "status": lead.status.value if lead.status else None,
+        "readiness_score": lead.readiness_score,
+        "recommended_offers": lead.recommended_offers,
+        "created_at": lead.created_at.isoformat() if lead.created_at else None,
+    }
+
+
+class OutboundWebhookCRM:
+    """Posts each new lead to a configurable URL (Zapier/Make/CRM inbound hook).
+
+    This is a *real* integration but needs only a URL — no proprietary SDK — so
+    it works with GoHighLevel/HubSpot/Zapier/Make inbound webhooks out of the
+    box. It runs through the seam and the job queue, so it never touches the
+    request path directly. Disabled unless ``CRM_PROVIDER=webhook`` and
+    ``CRM_WEBHOOK_URL`` are set.
+    """
+
+    def sync_lead(self, db: Session, lead: Lead) -> None:
+        url = settings.crm_webhook_url
+        if not url:
+            _log(db, lead, "crm_sync", "CRM webhook skipped (no CRM_WEBHOOK_URL)")
+            return
+        import httpx
+
+        resp = httpx.post(
+            url, json=_lead_payload(lead), timeout=settings.crm_webhook_timeout_seconds
+        )
+        resp.raise_for_status()
+        _log(db, lead, "crm_sync", f"CRM webhook posted (HTTP {resp.status_code})")
+
+
 # --- Provider registries -----------------------------------------------
 # Real providers register here in later increments, e.g.
 # _CRM_PROVIDERS["gohighlevel"] = GoHighLevelCRM.
-_CRM_PROVIDERS: dict[str, type] = {"none": NullCRM, "log": NullCRM}
+_CRM_PROVIDERS: dict[str, type] = {
+    "none": NullCRM,
+    "log": NullCRM,
+    "webhook": OutboundWebhookCRM,
+}
 _EMAIL_PROVIDERS: dict[str, type] = {"none": NullEmail, "log": NullEmail}
 _ENRICH_PROVIDERS: dict[str, type] = {"none": NullEnricher, "log": NullEnricher}
 
@@ -100,7 +152,8 @@ def dispatch_post_intake(db: Session, lead: Lead, is_duplicate: bool) -> None:
     """Run integration side effects for a freshly-ingested lead.
 
     Kept deliberately defensive: a failing integration must never break intake.
-    Called from ``intake.process_lead`` (the single intake path).
+    This is the worker body; it is invoked via the job queue (see
+    ``run_post_intake_job``) from the single intake path.
     """
     # Duplicates don't re-trigger outbound side effects.
     if is_duplicate:
@@ -117,3 +170,23 @@ def dispatch_post_intake(db: Session, lead: Lead, is_duplicate: bool) -> None:
         db.rollback()
         _log(db, lead, "integration_error", f"Post-intake dispatch failed: {exc}")
         db.commit()
+
+
+def run_post_intake_job(lead_id: int, is_duplicate: bool) -> None:
+    """Job entrypoint: open a fresh session and dispatch side effects.
+
+    Runs synchronously (inline queue) or on a background thread (thread queue).
+    Always uses its own session so it is safe off the request path.
+    """
+    db = SessionLocal()
+    try:
+        lead = db.get(Lead, lead_id)
+        if lead is not None:
+            dispatch_post_intake(db, lead, is_duplicate)
+    finally:
+        db.close()
+
+
+def enqueue_post_intake(lead: Lead, is_duplicate: bool) -> None:
+    """Submit the post-intake dispatch to the configured job queue."""
+    enqueue(run_post_intake_job, lead.id, is_duplicate)

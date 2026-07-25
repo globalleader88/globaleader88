@@ -54,13 +54,22 @@ Legend: ✅ done · ⬜ not started
 - ✅ Analytics summary endpoint (`/api/analytics/summary`)
 - ✅ Tests for all of the above (20 new; 57 total, all passing)
 
-### Increment 2+ — live providers & scale (NOT STARTED)
+### Increment 2 — background jobs & first real provider (COMPLETE)
+- ✅ Pluggable background job queue (`services/jobs.py`): `inline` (default) +
+      `thread`, selected by `JOB_QUEUE`; post-intake dispatch enqueued off the
+      request path (each job opens its own session)
+- ✅ First real integration: outbound-webhook CRM (`CRM_PROVIDER=webhook`,
+      `CRM_WEBHOOK_URL`) via the CRM seam + queue; failures never break intake
+- ✅ Tests for job queue (inline/thread) and the webhook provider (11 new;
+      68 total, all passing)
+
+### Increment 3+ — more live providers & scale (NOT STARTED)
 - ⬜ Real user accounts (beyond admin basic auth)
-- ⬜ Live CRM sync (GoHighLevel/HubSpot) via the CRM seam
 - ⬜ Live email/notification (SendGrid/SES) via the email seam; hot-lead alerts
 - ⬜ Lead enrichment (firmographics, SAM.gov) via the enrichment seam
+- ⬜ Native CRM providers (GoHighLevel/HubSpot) beyond the generic webhook
 - ⬜ Automated nurture sequences & booking (Calendly) round-trip
-- ⬜ Background job queue — move `dispatch_post_intake` off the request path
+- ⬜ Durable broker (Celery/RQ) behind the `JobQueue` interface
 - ⬜ Analytics/reporting dashboard UI, conversion tracking
 - ⬜ Point the frontend `CONFIG.leadEndpoint` at the deployed webhook
 

@@ -68,6 +68,18 @@ class Settings(BaseSettings):
     # Fire an internal notification when a lead scores at/above this.
     hot_lead_notify_threshold: int = 70
 
+    # Outbound-webhook CRM provider (CRM_PROVIDER=webhook). Posts lead JSON here.
+    crm_webhook_url: str | None = None
+    crm_webhook_timeout_seconds: float = 5.0
+
+    # --- Background jobs (Phase 2, inc. 2) -----------------------------
+    # How post-intake integration dispatch runs:
+    #   inline = synchronous, in-request (default; deterministic, simplest)
+    #   thread = a background thread pool (keeps intake latency off the path)
+    # A real deployment can later add "celery"/"rq" behind the same interface.
+    job_queue: str = "inline"
+    job_queue_max_workers: int = 4
+
     @property
     def cors_origins_list(self) -> list[str]:
         raw = self.cors_allow_origins.strip()

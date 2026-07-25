@@ -184,11 +184,30 @@ legacy webhook secret and admin basic auth still work.
 ### Integration seams
 
 `services/integrations.py` defines `Notifier`, `CRMSync`, `EmailSender`, and
-`Enricher` interfaces. The single intake path calls `dispatch_post_intake` after
-persisting a lead. Defaults make **no external calls** — they record a
-`LeadEvent` so the action is visible on the lead page. Add a real provider by
-implementing the Protocol, registering it in the provider map, and selecting it
-via `CRM_PROVIDER` / `EMAIL_PROVIDER` / `ENRICHMENT_PROVIDER`.
+`Enricher` interfaces. After persisting a lead, the single intake path enqueues
+`dispatch_post_intake` on the job queue (below). Default providers make **no
+external calls** — they record a `LeadEvent` so the action is visible on the lead
+page. Add a real provider by implementing the Protocol, registering it in the
+provider map, and selecting it via `CRM_PROVIDER` / `EMAIL_PROVIDER` /
+`ENRICHMENT_PROVIDER`.
+
+**First real provider — outbound-webhook CRM.** Set `CRM_PROVIDER=webhook` and
+`CRM_WEBHOOK_URL=...` to POST every new lead as JSON to any inbound webhook
+(Zapier, Make, GoHighLevel, HubSpot). It runs through the seam and the job queue,
+so it never touches the request path. Failures are logged as an
+`integration_error` event and never break intake.
+
+### Background job queue
+
+Post-intake side effects run via a pluggable queue (`services/jobs.py`), chosen
+with `JOB_QUEUE`:
+
+- `inline` (default) — synchronous; simplest and deterministic.
+- `thread` — a background thread pool, so intake returns immediately; each job
+  opens its own DB session.
+
+The `JobQueue.submit` contract lets a later increment drop in Celery/RQ with no
+caller changes.
 
 ### Rate limiting & CORS
 
