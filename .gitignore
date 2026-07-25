@@ -8,3 +8,16 @@ Thumbs.db
 # Local data / logs
 node_modules/
 *.log
+
+# Python / backend
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+*.sqlite3
+*.db
+
+# Secrets — never commit real environment files
+.env
+backend/.env

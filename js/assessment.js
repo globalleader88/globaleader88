@@ -18,10 +18,21 @@ window.CONFIG = {
   calendlyUrl: "",             // optional: paste your Calendly/booking link to turn the CTA into a button
 
   // ---- LEAD DELIVERY --------------------------------------------------
-  // Paste a form/webhook endpoint (Formspree, Netlify Forms, Zapier/Make
-  // webhook, a Google Apps Script URL, your CRM, etc.). Leads POST there as
-  // JSON. Leave "" to run in demo mode: leads are saved in the browser and
-  // viewable via the "View captured leads" link in the footer.
+  // Where completed leads are POSTed as JSON.
+  //
+  // RECOMMENDED: our own Lead Engine backend (see backend/). It scores,
+  // de-dupes, and stores every lead and shows them on an admin dashboard.
+  // Point this at its webhook route, including the shared secret:
+  //
+  //   leadEndpoint: "https://YOUR-HOST/webhook/lead?secret=YOUR_WEBHOOK_SECRET"
+  //
+  // (Or use an API key instead of the secret — see backend/README.md.)
+  //
+  // Any other form/webhook endpoint also works (Formspree, Netlify Forms,
+  // Zapier/Make, a Google Apps Script URL, your CRM, etc.).
+  //
+  // Leave "" to run in demo mode: leads are saved in the browser and viewable
+  // via the "View captured leads" link in the footer.
   leadEndpoint: ""
 };
 

@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block content %}
+  <p><a href="/">← Back to dashboard</a></p>
+  <h1>{{ lead.full_name }}
+    <span class="pill {{ lead.tier.value }}">{{ lead.tier.value }}</span>
+    <span class="score" style="margin-left:8px">score {{ lead.score }}</span>
+  </h1>
+  {% if lead.duplicate_of_id %}
+    <p class="muted">⚠ Flagged as a duplicate of <a href="/leads/{{ lead.duplicate_of_id }}">lead #{{ lead.duplicate_of_id }}</a></p>
+  {% endif %}
+
+  <div class="grid2">
+    <div class="panel">
+      <h3>Profile</h3>
+      <dl class="kv">
+        <dt>Company</dt><dd>{{ lead.company or "—" }}</dd>
+        <dt>Title</dt><dd>{{ lead.job_title or "—" }}</dd>
+        <dt>Email</dt><dd>{{ lead.email or "—" }}</dd>
+        <dt>Phone</dt><dd>{{ lead.phone or "—" }}</dd>
+        <dt>Website</dt><dd>{{ lead.website or "—" }}</dd>
+        <dt>Industry</dt><dd>{{ lead.industry or "—" }}</dd>
+        <dt>Employees</dt><dd>{{ lead.employees if lead.employees is not none else "—" }}</dd>
+        <dt>Annual revenue</dt><dd>{{ lead.annual_revenue if lead.annual_revenue is not none else "—" }}</dd>
+        <dt>Source</dt><dd>{{ lead.source or "—" }} {% if lead.campaign %}/ {{ lead.campaign }}{% endif %}</dd>
+        <dt>Status</dt><dd>{{ lead.status.value }}</dd>
+        <dt>Created</dt><dd>{{ lead.created_at }}</dd>
+      </dl>
+      {% if lead.notes %}<p class="muted">{{ lead.notes }}</p>{% endif %}
+    </div>
+
+    <div class="panel">
+      <h3>Score breakdown</h3>
+      {% if lead.score_breakdown %}
+        {% for key, val in lead.score_breakdown.items() if key != "total" %}
+          <div style="margin-bottom:8px">
+            <div style="display:flex;justify-content:space-between">
+              <span class="muted">{{ key.replace("_", " ") }}</span><span>{{ val }}</span>
+            </div>
+            <div class="bar"><span style="width: {{ (val / 40 * 100) if val else 0 }}%"></span></div>
+          </div>
+        {% endfor %}
+      {% else %}<p class="muted">No breakdown.</p>{% endif %}
+
+      {% if lead.readiness_score is not none %}
+        <h3 style="margin-top:18px">Readiness assessment</h3>
+        <p>Overall: <strong>{{ lead.readiness_score }}</strong>
+          {% if lead.readiness_tier %}({{ lead.readiness_tier }}){% endif %}</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top:20px">
+    <h3>Recommended offers</h3>
+    {% for offer in lead.recommended_offers or [] %}
+      <div class="offer">
+        <h4>{{ offer.name }} <span class="muted" style="font-weight:400">· {{ offer.price_hint }}</span></h4>
+        <div class="muted">{{ offer.pitch }}</div>
+      </div>
+    {% else %}
+      <p class="muted">No offers recommended.</p>
+    {% endfor %}
+  </div>
+
+  {% if lead.events %}
+  <div class="panel" style="margin-top:20px">
+    <h3>Activity</h3>
+    <ul>
+      {% for ev in lead.events %}
+        <li><span class="muted">{{ ev.created_at }}</span> — <strong>{{ ev.kind }}</strong>: {{ ev.message }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+{% endblock %}
