@@ -57,6 +57,9 @@ class Settings(BaseSettings):
     rate_limit_enabled: bool = True
     webhook_rate_limit: int = 60
     webhook_rate_window_seconds: int = 60
+    # Failed-login throttle for HTTP Basic (admin + user accounts), per client IP.
+    auth_max_failures: int = 10
+    auth_fail_window_seconds: int = 300
 
     # --- Integrations (Phase 2) ----------------------------------------
     # Provider selection. "none"/"log" keep everything self-contained (no
@@ -71,6 +74,11 @@ class Settings(BaseSettings):
     # Outbound-webhook CRM provider (CRM_PROVIDER=webhook). Posts lead JSON here.
     crm_webhook_url: str | None = None
     crm_webhook_timeout_seconds: float = 5.0
+
+    # HTTP enrichment provider (ENRICHMENT_PROVIDER=webhook). POSTs the lead to
+    # this URL and merges returned firmographic fields into empty lead fields.
+    enrichment_webhook_url: str | None = None
+    enrichment_webhook_timeout_seconds: float = 5.0
 
     # SMTP email provider (EMAIL_PROVIDER=smtp). Sends hot-lead alerts to the
     # sales team and (optionally) a welcome email to the prospect.

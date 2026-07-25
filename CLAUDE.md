@@ -102,9 +102,13 @@ Phase 2 (in progress):
   sales team (`HOT_LEAD_ALERT_TO`) via an SMTP-backed notifier; an opt-in
   welcome email to the prospect (`SEND_WELCOME_EMAIL`). Routed through the seam
   + job queue; failures logged, never break intake.
-- **Remaining:** live enrichment provider on the enrichment seam, automated
-  nurture, a durable broker (Celery/RQ) behind the `JobQueue` interface, and
-  richer analytics.
+- **Increment 5 (done):** live HTTP enrichment provider on the enrichment seam
+  (`HttpEnricher`, `ENRICHMENT_PROVIDER=webhook` + `ENRICHMENT_WEBHOOK_URL`).
+  POSTs the lead to a configurable endpoint and merges returned firmographics
+  into empty fields only (never overwrites). All three integration seams (CRM,
+  email, enrichment) now have a real, feature-flagged provider.
+- **Remaining:** automated nurture, a durable broker (Celery/RQ) behind the
+  `JobQueue` interface, re-scoring after enrichment, and richer analytics.
 
 ### Phase 2 rules
 - New external providers implement the Protocols in `services/integrations.py`

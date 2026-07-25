@@ -90,8 +90,34 @@ Legend: ✅ done · ⬜ not started
       logged as `integration_error`, never break intake
 - ✅ Tests with a fake SMTP transport (8 new; 93 total, all passing)
 
-### Increment 5+ — remaining providers & scale (NOT STARTED)
-- ⬜ Live enrichment (firmographics, SAM.gov) via the enrichment seam
+### Increment 5 — live HTTP enrichment provider (COMPLETE)
+- ✅ `HttpEnricher` on the enrichment seam (`ENRICHMENT_PROVIDER=webhook`,
+      `ENRICHMENT_WEBHOOK_URL`): POSTs the lead, merges returned firmographics
+      into empty fields only (never overwrites); through seam + queue; failures
+      logged, never break intake
+- ✅ All three seams (CRM, email, enrichment) now have a real provider
+- ✅ Tests with mocked httpx (6 new; 99 total, all passing)
+
+### Security review (auth / PII / secrets) — DONE
+Reviewed auth, API keys, passwords, users, rate limiting, webhook auth, CORS,
+and outbound calls. Fixed the top actionable findings:
+- ✅ **Login brute-force** (medium): per-IP failed-login throttle on HTTP Basic
+      (`AUTH_MAX_FAILURES`/`AUTH_FAIL_WINDOW_SECONDS`) → 429 after too many fails.
+- ✅ **User enumeration** (low): `authenticate` now verifies against a dummy hash
+      when the email is unknown/inactive, equalizing response time.
+- ✅ **Insecure defaults in prod** (low): startup warning if `ADMIN_PASSWORD` or
+      `WEBHOOK_SECRET` are still the dev defaults in `ENVIRONMENT=production`.
+- 5 new security tests (104 total, all passing).
+
+Noted (recommended, operator-facing — not code bugs):
+- Webhook secret may be passed as `?secret=` for static sites; prefer the
+  `X-Webhook-Secret` header or an API key in production (query strings can be
+  logged by proxies).
+- `CORS_ALLOW_ORIGINS` defaults to `*`; restrict to the funnel domain in prod.
+- Consider a request-body size limit / WAF in front of the public webhook.
+
+### Increment 6+ — scale & polish (NOT STARTED)
+- ⬜ Re-score a lead after enrichment fills firmographics
 - ⬜ Lead enrichment (firmographics, SAM.gov) via the enrichment seam
 - ⬜ Native CRM providers (GoHighLevel/HubSpot) beyond the generic webhook
 - ⬜ Automated nurture sequences & booking (Calendly) round-trip

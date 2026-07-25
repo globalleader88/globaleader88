@@ -172,6 +172,50 @@ class SmtpEmailSender:
         _log(db, lead, "email", f"Welcome email sent to {lead.email}")
 
 
+# --- Real provider: HTTP enrichment ------------------------------------
+# Firmographic fields an enrichment service may fill in. We only ever populate
+# fields the lead is *missing* — enrichment augments, it never overwrites.
+_ENRICHABLE_FIELDS = ("industry", "employees", "annual_revenue", "website", "job_title")
+
+
+class HttpEnricher:
+    """Enriches a lead from a configurable HTTP endpoint (ENRICHMENT_PROVIDER=webhook).
+
+    POSTs the lead to ``ENRICHMENT_WEBHOOK_URL`` and expects a JSON object back
+    with any of the enrichable firmographic fields. Like the outbound CRM, this
+    needs only a URL — point it at Clearbit-via-Zapier, your own service, etc.
+    Runs through the seam and job queue; failures never break intake.
+    """
+
+    def enrich(self, db: Session, lead: Lead) -> None:
+        url = settings.enrichment_webhook_url
+        if not url:
+            _log(db, lead, "enrich", "Enrichment skipped (no ENRICHMENT_WEBHOOK_URL)")
+            return
+        import httpx
+
+        resp = httpx.post(
+            url,
+            json=_lead_payload(lead),
+            timeout=settings.enrichment_webhook_timeout_seconds,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        if not isinstance(data, dict):
+            _log(db, lead, "enrich", "Enrichment response was not a JSON object; ignored")
+            return
+
+        filled: list[str] = []
+        for field in _ENRICHABLE_FIELDS:
+            incoming = data.get(field)
+            current = getattr(lead, field, None)
+            # Only fill fields that are currently empty (never overwrite).
+            if incoming is not None and current in (None, "", 0):
+                setattr(lead, field, incoming)
+                filled.append(field)
+        _log(db, lead, "enrich", f"Enriched fields: {filled or 'none'}")
+
+
 # --- Provider registries -----------------------------------------------
 # Real providers register here in later increments, e.g.
 # _CRM_PROVIDERS["gohighlevel"] = GoHighLevelCRM.
@@ -185,7 +229,11 @@ _EMAIL_PROVIDERS: dict[str, type] = {
     "log": NullEmail,
     "smtp": SmtpEmailSender,
 }
-_ENRICH_PROVIDERS: dict[str, type] = {"none": NullEnricher, "log": NullEnricher}
+_ENRICH_PROVIDERS: dict[str, type] = {
+    "none": NullEnricher,
+    "log": NullEnricher,
+    "webhook": HttpEnricher,
+}
 
 
 def get_notifier() -> Notifier:
