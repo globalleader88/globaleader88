@@ -185,6 +185,13 @@
     $("#leadForm").addEventListener("submit", submitLead);
   }
 
+  // Read a query param from the landing URL (tracked links put UTMs before the
+  // hash, e.g. ".../?utm_source=prospecting&utm_campaign=govcon#/").
+  function utmParam(key) {
+    try { return new URLSearchParams(window.location.search).get(key) || ""; }
+    catch (e) { return ""; }
+  }
+
   async function submitLead(e) {
     e.preventDefault();
     const form = e.target;
@@ -202,7 +209,11 @@
       recommendations: r ? r.recos.slice(0, 5) : [],
       answers: session.answers,
       submittedAt: new Date().toISOString(),
-      source: "Readiness Assessment"
+      // Attribution: if the visitor arrived via a tracked link (utm_source /
+      // utm_campaign), record it so the Lead Engine shows which campaign
+      // produced this lead; otherwise fall back to the generic source.
+      source: utmParam("utm_source") || "Readiness Assessment",
+      campaign: utmParam("utm_campaign") || ""
     };
     if (!lead.name || !lead.email || !lead.company) return;
 

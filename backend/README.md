@@ -259,6 +259,27 @@ The public webhook is rate-limited per client IP (`WEBHOOK_RATE_LIMIT` per
 `GET /api/analytics/summary` (scope `analytics:read` or admin) returns counts by
 tier/status/source, average score, and the most-recommended offers.
 
+### Prospect Finder (demand generation)
+
+Finds GovCon businesses that match an ideal-customer profile from **public**
+federal data, scores each for fit, and generates a UTM-tracked assessment link
+plus a personalized outreach draft — the *inbound* half of the product. It does
+not create leads; a prospect becomes a lead only by taking the assessment.
+
+```bash
+# Ranked prospects (JSON) — GovCon defaults, filter by state/NAICS
+curl -u admin:PASSWORD "http://localhost:8000/api/prospects/find?state=GA&limit=25"
+# Same as a downloadable outreach CSV
+curl -u admin:PASSWORD "http://localhost:8000/api/prospects/find.csv?state=GA" -o prospects.csv
+```
+
+Set `PROSPECTING_SOURCE=usaspending` to pull real federal awardees from
+USASpending.gov (no key); the default `sample` uses built-in demo data. Tracked
+links point at `ASSESSMENT_BASE_URL` with `utm_source`/`utm_campaign`, and the
+funnel forwards those to the engine so the dashboard shows which campaign
+produced each lead. **Compliance:** this produces targets and drafts only —
+sending outreach is the operator's responsibility (CAN-SPAM / platform terms).
+
 ## Configuration
 
 All settings are environment variables (see `.env.example`). Key ones:

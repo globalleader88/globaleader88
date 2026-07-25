@@ -107,6 +107,13 @@ class Settings(BaseSettings):
     job_queue: str = "inline"
     job_queue_max_workers: int = 4
 
+    # --- Prospecting (Phase 3, demand generation) ----------------------
+    # Source for the Prospect Finder: "sample" (no network, default) or
+    # "usaspending" (public API, no key). The funnel URL used for tracked links.
+    prospecting_source: str = "sample"
+    prospecting_timeout_seconds: float = 15.0
+    assessment_base_url: str = "https://leadengine-funnel.onrender.com/"
+
     @property
     def cors_origins_list(self) -> list[str]:
         raw = self.cors_allow_origins.strip()
