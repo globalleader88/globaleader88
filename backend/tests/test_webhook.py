@@ -43,3 +43,46 @@ def test_webhook_dedupes_repeat_submission(client, webhook_headers):
     r2 = client.post("/webhook/lead", json=p, headers=webhook_headers)
     assert r1.json()["is_duplicate"] is False
     assert r2.json()["is_duplicate"] is True
+
+
+def test_accepts_exact_funnel_payload(client, webhook_headers):
+    """Contract test: the payload shape the funnel (js/leadgen.js) actually POSTs.
+
+    If the funnel's field names change, this test breaks — catching a silent
+    contract drift between the two halves of the product.
+    """
+    funnel_payload = {
+        "name": "Maria Gomez",
+        "email": "maria@apextech.com",
+        "company": "Apex Technologies LLC",
+        "phone": "(202) 555-0142",
+        "goal": "Win my first federal contract within 12 months",
+        "score": 58,
+        "tier": "Developing",
+        "categories": [
+            {"label": "Registration & Eligibility", "score": 80},
+            {"label": "Certifications & Set-Asides", "score": 40},
+        ],
+        "recommendations": ["Register in SAM.gov", "Pursue WOSB certification"],
+        "answers": {"q1": "yes", "q2": "no"},
+        "submittedAt": "2026-07-25T12:00:00.000Z",
+        "source": "Readiness Assessment",
+    }
+    r = client.post("/webhook/lead", json=funnel_payload, headers=webhook_headers)
+    assert r.status_code == 200
+    lead = r.json()["lead"]
+    # Core contact fields land in the right columns.
+    assert lead["first_name"] == "Maria"
+    assert lead["last_name"] == "Gomez"
+    assert lead["email"] == "maria@apextech.com"
+    assert lead["company"] == "Apex Technologies LLC"
+    # Assessment score/tier map to the readiness columns.
+    assert lead["readiness_score"] == 58
+    assert lead["readiness_tier"] == "Developing"
+    # Free-text goal becomes notes; the funnel's own recos/categories are kept.
+    assert lead["notes"] == "Win my first federal contract within 12 months"
+    assert lead["source"] == "Readiness Assessment"
+    assert lead["assessment"]["categories"][0]["label"] == "Registration & Eligibility"
+    # And it was scored.
+    assert r.json()["score"] > 0
+    assert r.json()["tier"] in ("hot", "warm", "cold")

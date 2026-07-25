@@ -43,6 +43,8 @@ _ALIASES = {
     "score": "readiness_score",
     "readinessScore": "readiness_score",
     "tier": "readiness_tier",
+    # The funnel's free-text "what's your goal" answer is useful sales context.
+    "goal": "notes",
 }
 
 

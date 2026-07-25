@@ -63,6 +63,16 @@ Legend: ✅ done · ⬜ not started
 - ✅ Tests for job queue (inline/thread) and the webhook provider (11 new;
       68 total, all passing)
 
+### Funnel ↔ Engine integration (VERIFIED)
+- ✅ Webhook accepts the funnel's exact payload (`js/leadgen.js`); pinned by a
+      contract regression test (`tests/test_webhook.py::test_accepts_exact_funnel_payload`)
+- ✅ Funnel's free-text `goal` maps to lead `notes`; score/tier → readiness columns
+- ✅ `CONFIG.leadEndpoint` documented with the exact Lead Engine webhook URL form
+- ✅ `docker-compose.yml` statically validated; initial migration is Postgres-portable
+- ⏳ Live Docker/Postgres run not executed here (no Docker daemon in this sandbox);
+      compose + migration verified statically instead
+- ⬜ Set `CONFIG.leadEndpoint` to the deployed webhook URL (deploy-time step)
+
 ### Increment 3+ — more live providers & scale (NOT STARTED)
 - ⬜ Real user accounts (beyond admin basic auth)
 - ⬜ Live email/notification (SendGrid/SES) via the email seam; hot-lead alerts
