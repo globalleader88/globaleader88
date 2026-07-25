@@ -73,9 +73,25 @@ Legend: ✅ done · ⬜ not started
       compose + migration verified statically instead
 - ⬜ Set `CONFIG.leadEndpoint` to the deployed webhook URL (deploy-time step)
 
-### Increment 3+ — more live providers & scale (NOT STARTED)
-- ⬜ Real user accounts (beyond admin basic auth)
-- ⬜ Live email/notification (SendGrid/SES) via the email seam; hot-lead alerts
+### Increment 3 — real user accounts (COMPLETE)
+- ✅ `User` model + PBKDF2 password hashing (`services/passwords.py`, stdlib-only)
+- ✅ Alembic migration for the `users` table
+- ✅ HTTP Basic authenticates against the users table with role enforcement
+      (`require_admin` / `require_viewer`); env admin kept as bootstrap login +
+      seeded on startup
+- ✅ Users management API (`/api/users`, admin-only CRUD, soft-delete)
+- ✅ Tests (16 new; 85 total, all passing)
+
+### Increment 4 — live SMTP email provider (COMPLETE)
+- ✅ SMTP transport (`services/email.py`, stdlib `smtplib`, no new dependency)
+- ✅ Hot-lead alert emails to the sales team (`SmtpAlertNotifier`, `HOT_LEAD_ALERT_TO`)
+- ✅ Opt-in prospect welcome email (`SmtpEmailSender`, `SEND_WELCOME_EMAIL`)
+- ✅ Selected by `EMAIL_PROVIDER=smtp`; routed through seam + queue; failures
+      logged as `integration_error`, never break intake
+- ✅ Tests with a fake SMTP transport (8 new; 93 total, all passing)
+
+### Increment 5+ — remaining providers & scale (NOT STARTED)
+- ⬜ Live enrichment (firmographics, SAM.gov) via the enrichment seam
 - ⬜ Lead enrichment (firmographics, SAM.gov) via the enrichment seam
 - ⬜ Native CRM providers (GoHighLevel/HubSpot) beyond the generic webhook
 - ⬜ Automated nurture sequences & booking (Calendly) round-trip

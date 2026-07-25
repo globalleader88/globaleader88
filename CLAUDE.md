@@ -92,9 +92,19 @@ Phase 2 (in progress):
   the request path, and the first real integration — a generic outbound-webhook
   CRM (`CRM_PROVIDER=webhook` + `CRM_WEBHOOK_URL`) posting leads to any Zapier/
   Make/GoHighLevel inbound hook, still routed through the seam and queue.
-- **Remaining:** real user accounts, live email/enrichment providers on the
-  existing seams, automated nurture, a durable broker (Celery/RQ) behind the
-  `JobQueue` interface, and richer analytics.
+- **Increment 3 (done):** real user accounts (`app/models.py::User`,
+  `app/services/users.py`, `app/services/passwords.py` PBKDF2, `app/routers/users.py`).
+  HTTP Basic authenticates against the `users` table with role enforcement
+  (`require_admin` / `require_viewer`); env `ADMIN_USERNAME`/`ADMIN_PASSWORD` stay
+  a bootstrap login and seed the first admin on startup.
+- **Increment 4 (done):** live SMTP email provider on the email seam
+  (`app/services/email.py`, `EMAIL_PROVIDER=smtp`). Hot-lead alerts email the
+  sales team (`HOT_LEAD_ALERT_TO`) via an SMTP-backed notifier; an opt-in
+  welcome email to the prospect (`SEND_WELCOME_EMAIL`). Routed through the seam
+  + job queue; failures logged, never break intake.
+- **Remaining:** live enrichment provider on the enrichment seam, automated
+  nurture, a durable broker (Celery/RQ) behind the `JobQueue` interface, and
+  richer analytics.
 
 ### Phase 2 rules
 - New external providers implement the Protocols in `services/integrations.py`

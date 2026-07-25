@@ -100,6 +100,37 @@ class Lead(Base):
         return " ".join(parts) if parts else "(no name)"
 
 
+class UserRole(str, enum.Enum):
+    admin = "admin"
+    viewer = "viewer"
+
+
+class User(Base):
+    """An admin/console user (Phase 2 auth).
+
+    Replaces the single shared admin password with real accounts. Passwords are
+    stored as a PBKDF2 hash (see ``services/passwords.py``). ``viewer`` may read
+    the dashboard/leads; ``admin`` may also manage users, API keys, and mutate.
+    """
+
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    full_name: Mapped[str | None] = mapped_column(String(200))
+    password_hash: Mapped[str] = mapped_column(String(255))
+    role: Mapped[UserRole] = mapped_column(
+        Enum(UserRole, native_enum=False, length=10), default=UserRole.admin
+    )
+    active: Mapped[bool] = mapped_column(default=True)
+    created_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    last_login_at: Mapped[dt.datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+
 class ApiKey(Base):
     """A hashed API key for programmatic access (Phase 2 auth).
 

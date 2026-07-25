@@ -72,6 +72,25 @@ class Settings(BaseSettings):
     crm_webhook_url: str | None = None
     crm_webhook_timeout_seconds: float = 5.0
 
+    # SMTP email provider (EMAIL_PROVIDER=smtp). Sends hot-lead alerts to the
+    # sales team and (optionally) a welcome email to the prospect.
+    smtp_host: str | None = None
+    smtp_port: int = 587
+    smtp_user: str | None = None
+    smtp_password: str | None = None
+    smtp_use_tls: bool = True
+    smtp_timeout_seconds: float = 10.0
+    email_from: str = "leads@theglobalconnects.com"
+    # Comma-separated recipients for internal hot-lead alerts.
+    hot_lead_alert_to: str | None = None
+    # Send a welcome email to the prospect on intake (opt-in; off by default).
+    send_welcome_email: bool = False
+
+    @property
+    def hot_lead_alert_recipients(self) -> list[str]:
+        raw = (self.hot_lead_alert_to or "").strip()
+        return [a.strip() for a in raw.split(",") if a.strip()]
+
     # --- Background jobs (Phase 2, inc. 2) -----------------------------
     # How post-intake integration dispatch runs:
     #   inline = synchronous, in-request (default; deterministic, simplest)

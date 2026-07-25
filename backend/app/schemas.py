@@ -120,6 +120,30 @@ class ApiKeyCreated(ApiKeyOut):
     api_key: str
 
 
+# --- Users (Phase 2, increment 3) ---------------------------------------
+class UserCreate(BaseModel):
+    email: EmailStr
+    password: str = Field(min_length=8)
+    full_name: str | None = None
+    role: str = "admin"
+
+
+class UserUpdate(BaseModel):
+    active: bool | None = None
+    role: str | None = None
+
+
+class UserOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    email: str
+    full_name: str | None = None
+    role: str
+    active: bool
+    created_at: dt.datetime
+    last_login_at: dt.datetime | None = None
+
+
 # --- Analytics (Phase 2) ------------------------------------------------
 class AnalyticsSummary(BaseModel):
     total_leads: int

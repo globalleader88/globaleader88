@@ -7,8 +7,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .config import get_settings
-from .database import init_db
-from .routers import analytics, apikeys, dashboard, leads, webhook
+from .database import SessionLocal, init_db
+from .routers import analytics, apikeys, dashboard, leads, users, webhook
+from .services import users as users_service
 
 settings = get_settings()
 
@@ -19,6 +20,17 @@ async def lifespan(app: FastAPI):
     # For local dev / tests we auto-create tables for a zero-setup boot.
     if settings.auto_create_tables:
         init_db()
+    # Seed the first admin account from env so a fresh deploy can log in and
+    # then create real users. No-op once any user exists.
+    db = SessionLocal()
+    try:
+        users_service.ensure_bootstrap_admin(
+            db, settings.admin_username, settings.admin_password
+        )
+    except Exception:  # noqa: BLE001 - never block startup on seeding
+        db.rollback()
+    finally:
+        db.close()
     yield
 
 
@@ -43,6 +55,7 @@ app.include_router(leads.router)
 app.include_router(webhook.router)
 app.include_router(apikeys.router)
 app.include_router(analytics.router)
+app.include_router(users.router)
 
 
 @app.get("/health", tags=["system"])
