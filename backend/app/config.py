@@ -114,10 +114,25 @@ class Settings(BaseSettings):
             return ["*"]
         return [o.strip() for o in raw.split(",") if o.strip()]
 
+    @staticmethod
+    def _normalize_db_url(url: str) -> str:
+        """Normalize a database URL for SQLAlchemy 2.0.
+
+        Managed Postgres providers (Render, Heroku, …) hand out ``postgres://``,
+        which SQLAlchemy 2.0 rejects, and a bare ``postgresql://`` (no driver).
+        Rewrite both to the explicit ``postgresql+psycopg2://``. SQLite and any
+        URL that already names a driver (``postgresql+asyncpg://``) are left as-is.
+        """
+        if url.startswith("postgres://"):
+            return "postgresql+psycopg2://" + url[len("postgres://"):]
+        if url.startswith("postgresql://"):
+            return "postgresql+psycopg2://" + url[len("postgresql://"):]
+        return url
+
     @property
     def resolved_database_url(self) -> str:
         if self.database_url:
-            return self.database_url
+            return self._normalize_db_url(self.database_url)
         return (
             f"postgresql+psycopg2://{self.postgres_user}:{self.postgres_password}"
             f"@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
