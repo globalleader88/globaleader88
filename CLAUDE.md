@@ -97,9 +97,14 @@ Phase 2 (in progress):
   HTTP Basic authenticates against the `users` table with role enforcement
   (`require_admin` / `require_viewer`); env `ADMIN_USERNAME`/`ADMIN_PASSWORD` stay
   a bootstrap login and seed the first admin on startup.
-- **Remaining:** live email/enrichment providers on the existing seams,
-  automated nurture, a durable broker (Celery/RQ) behind the `JobQueue`
-  interface, and richer analytics.
+- **Increment 4 (done):** live SMTP email provider on the email seam
+  (`app/services/email.py`, `EMAIL_PROVIDER=smtp`). Hot-lead alerts email the
+  sales team (`HOT_LEAD_ALERT_TO`) via an SMTP-backed notifier; an opt-in
+  welcome email to the prospect (`SEND_WELCOME_EMAIL`). Routed through the seam
+  + job queue; failures logged, never break intake.
+- **Remaining:** live enrichment provider on the enrichment seam, automated
+  nurture, a durable broker (Celery/RQ) behind the `JobQueue` interface, and
+  richer analytics.
 
 ### Phase 2 rules
 - New external providers implement the Protocols in `services/integrations.py`

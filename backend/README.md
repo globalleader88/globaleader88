@@ -212,11 +212,17 @@ page. Add a real provider by implementing the Protocol, registering it in the
 provider map, and selecting it via `CRM_PROVIDER` / `EMAIL_PROVIDER` /
 `ENRICHMENT_PROVIDER`.
 
-**First real provider — outbound-webhook CRM.** Set `CRM_PROVIDER=webhook` and
+**Real provider — outbound-webhook CRM.** Set `CRM_PROVIDER=webhook` and
 `CRM_WEBHOOK_URL=...` to POST every new lead as JSON to any inbound webhook
 (Zapier, Make, GoHighLevel, HubSpot). It runs through the seam and the job queue,
 so it never touches the request path. Failures are logged as an
 `integration_error` event and never break intake.
+
+**Real provider — SMTP email.** Set `EMAIL_PROVIDER=smtp` plus the `SMTP_*`
+settings (works with Gmail, Amazon SES SMTP, Mailgun, Postmark, …). Hot leads
+(score ≥ `HOT_LEAD_NOTIFY_THRESHOLD`) email the sales team at `HOT_LEAD_ALERT_TO`;
+set `SEND_WELCOME_EMAIL=true` to also send the prospect a confirmation. Same
+guarantees: through the seam + queue, failures never break intake.
 
 ### Background job queue
 

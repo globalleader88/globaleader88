@@ -119,6 +119,59 @@ class OutboundWebhookCRM:
         _log(db, lead, "crm_sync", f"CRM webhook posted (HTTP {resp.status_code})")
 
 
+# --- Real provider: SMTP email -----------------------------------------
+def _lead_summary(lead: Lead) -> str:
+    offers = lead.recommended_offers or []
+    top = offers[0]["name"] if offers else "—"
+    return (
+        f"Name:    {lead.full_name}\n"
+        f"Company: {lead.company or '—'}\n"
+        f"Email:   {lead.email or '—'}\n"
+        f"Phone:   {lead.phone or '—'}\n"
+        f"Score:   {lead.score} ({lead.tier.value if lead.tier else '—'})\n"
+        f"Source:  {lead.source or '—'}\n"
+        f"Top offer: {top}\n"
+    )
+
+
+class SmtpAlertNotifier:
+    """Emails the sales team when a hot lead arrives (EMAIL_PROVIDER=smtp)."""
+
+    def notify_hot_lead(self, db: Session, lead: Lead) -> None:
+        from . import email as email_mod
+
+        recipients = settings.hot_lead_alert_recipients
+        if not email_mod.is_configured() or not recipients:
+            _log(db, lead, "notify", "Hot-lead alert skipped (SMTP/recipients unset)")
+            return
+        subject = f"🔥 Hot GovCon lead: {lead.full_name} ({lead.company or 'n/a'}) — score {lead.score}"
+        email_mod.send_email(subject, _lead_summary(lead), recipients)
+        _log(db, lead, "notify", f"Hot-lead alert emailed to {len(recipients)} recipient(s)")
+
+
+class SmtpEmailSender:
+    """Sends a welcome email to the prospect on intake (opt-in via SEND_WELCOME_EMAIL)."""
+
+    def send_welcome(self, db: Session, lead: Lead) -> None:
+        from . import email as email_mod
+
+        if not settings.send_welcome_email:
+            _log(db, lead, "email", "Welcome email disabled (SEND_WELCOME_EMAIL=false)")
+            return
+        if not email_mod.is_configured() or not lead.email:
+            _log(db, lead, "email", "Welcome email skipped (SMTP unset or no lead email)")
+            return
+        subject = "Thanks for your Federal Contracting Readiness Assessment"
+        body = (
+            f"Hi {lead.first_name or 'there'},\n\n"
+            "Thanks for completing your Federal Contracting Readiness Assessment. "
+            "A GovCon advisor will be in touch shortly with your tailored next steps.\n\n"
+            "— The Global Connects Services\n"
+        )
+        email_mod.send_email(subject, body, [lead.email])
+        _log(db, lead, "email", f"Welcome email sent to {lead.email}")
+
+
 # --- Provider registries -----------------------------------------------
 # Real providers register here in later increments, e.g.
 # _CRM_PROVIDERS["gohighlevel"] = GoHighLevelCRM.
@@ -127,11 +180,19 @@ _CRM_PROVIDERS: dict[str, type] = {
     "log": NullCRM,
     "webhook": OutboundWebhookCRM,
 }
-_EMAIL_PROVIDERS: dict[str, type] = {"none": NullEmail, "log": NullEmail}
+_EMAIL_PROVIDERS: dict[str, type] = {
+    "none": NullEmail,
+    "log": NullEmail,
+    "smtp": SmtpEmailSender,
+}
 _ENRICH_PROVIDERS: dict[str, type] = {"none": NullEnricher, "log": NullEnricher}
 
 
 def get_notifier() -> Notifier:
+    # When email is the SMTP provider, hot-lead alerts go out as email; otherwise
+    # they're recorded as an audit event only.
+    if settings.email_provider == "smtp":
+        return SmtpAlertNotifier()
     return LoggingNotifier()
 
 
