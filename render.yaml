@@ -1,0 +1,52 @@
+# Render Blueprint for the Global Connects Lead Engine.
+# Deploy: push this to your repo, then in Render → "New +" → "Blueprint" and
+# point it at this repository. Render reads this file, provisions a managed
+# Postgres and the API service, runs migrations, and generates secrets.
+# Docs: https://render.com/docs/blueprint-spec
+
+databases:
+  - name: leadengine-db
+    databaseName: leadengine
+    user: leadengine
+    plan: free                      # free Postgres expires after 90 days; upgrade for production
+
+services:
+  - type: web
+    name: leadengine-api
+    runtime: docker                 # if your Render account rejects this key, use `env: docker`
+    rootDir: backend                # Dockerfile + alembic live in backend/
+    dockerfilePath: ./Dockerfile
+    plan: free
+    healthCheckPath: /health
+    # Apply DB migrations before the new version goes live (Alembic is the
+    # source of truth in production; AUTO_CREATE_TABLES stays off).
+    preDeployCommand: "alembic upgrade head"
+    # Bind to the port Render assigns.
+    dockerCommand: "sh -c 'uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}'"
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: leadengine-db
+          property: connectionString
+      - key: ENVIRONMENT
+        value: production
+      - key: AUTO_CREATE_TABLES
+        value: "false"
+      - key: ADMIN_USERNAME
+        value: admin
+      - key: ADMIN_PASSWORD          # auto-generated; view/rotate it in the Render dashboard
+        generateValue: true
+      - key: WEBHOOK_SECRET          # auto-generated; used by the funnel's leadEndpoint
+        generateValue: true
+      - key: HOT_LEAD_NOTIFY_THRESHOLD
+        value: "70"
+      # Lock this to your funnel's domain once it's live (e.g. https://app.theglobalconnects.com).
+      - key: CORS_ALLOW_ORIGINS
+        value: "*"
+      # --- Optional integrations (fill in to enable; safe to leave as-is) ---
+      - key: CRM_PROVIDER
+        value: none                  # set to "webhook" and add CRM_WEBHOOK_URL to enable
+      - key: EMAIL_PROVIDER
+        value: none                  # set to "smtp" and add SMTP_* + HOT_LEAD_ALERT_TO to enable
+      - key: ENRICHMENT_PROVIDER
+        value: none                  # set to "webhook" and add ENRICHMENT_WEBHOOK_URL to enable
