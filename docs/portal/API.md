@@ -75,7 +75,21 @@ All document actions run `assertDocumentAccess`, which is org-scoped and returns
 | Route | Methods | Auth | Purpose |
 | --- | --- | --- | --- |
 | `/api/health` | GET | public | Liveness/readiness (DB ping). No sensitive detail. |
+| `/api/chat/stream` | POST | member | Streaming RAG. Auth + conversation access checked before streaming; returns NDJSON `delta`/`done`/`error` events. Suspended orgs blocked. |
 | `/api/dev-storage/[key]` | GET, PUT | member (Analyst for PUT) | **Local-dev only** S3 stand-in; org-prefix validated; disabled unless `STORAGE_DRIVER=local`. |
+
+### `/api/chat/stream` protocol
+
+Request body: `{ conversationId: uuid, question: string }`. Response is
+`application/x-ndjson`, one JSON object per line:
+
+- `{"type":"delta","text":"..."}` — an answer chunk (append in order)
+- `{"type":"done","citations":[...],"insufficientEvidence":bool,"modelId":"...","usage":{...}}`
+- `{"type":"error","error":"..."}` — safe message if generation fails mid-stream
+
+Pre-stream failures (unauthenticated, no membership, suspended org, bad input,
+cross-tenant conversation) return a normal JSON error with the appropriate
+status code before the stream starts.
 
 ## Adding a real HTTP API (Phase 2)
 

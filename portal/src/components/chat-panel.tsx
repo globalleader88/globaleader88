@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { askAction } from '@/server/actions/chat';
 import type { CitationOut } from '@/lib/rag/answer';
 
 export interface UiMessage {
@@ -35,26 +34,80 @@ export function ChatPanel({
     if (!question || busy) return;
     setError(null);
     setBusy(true);
-    setMessages((m) => [...m, { id: `local-${m.length}`, role: 'USER', content: question }]);
-    setInput('');
 
-    const res = await askAction({ conversationId, question });
-    setBusy(false);
-    if (!res.ok) {
-      setError(res.error);
-      return;
-    }
+    const assistantId = `a-${Date.now()}`;
     setMessages((m) => [
       ...m,
-      {
-        id: `a-${m.length}`,
-        role: 'ASSISTANT',
-        content: res.answer,
-        insufficientEvidence: res.insufficientEvidence,
-        citations: res.citations,
-      },
+      { id: `u-${Date.now()}`, role: 'USER', content: question },
+      { id: assistantId, role: 'ASSISTANT', content: '' },
     ]);
-    router.refresh();
+    setInput('');
+
+    const patchAssistant = (patch: Partial<UiMessage>) =>
+      setMessages((m) => m.map((msg) => (msg.id === assistantId ? { ...msg, ...patch } : msg)));
+
+    try {
+      const res = await fetch('/api/chat/stream', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversationId, question }),
+      });
+
+      if (!res.ok || !res.body) {
+        const detail = await res.json().catch(() => ({ error: 'Request failed' }));
+        setError(detail.error ?? 'Request failed');
+        setMessages((m) => m.filter((msg) => msg.id !== assistantId));
+        return;
+      }
+
+      // Parse the NDJSON stream: {type:delta|done|error}.
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let answer = '';
+      let streamError: string | null = null;
+
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          const event = JSON.parse(line) as {
+            type: 'delta' | 'done' | 'error';
+            text?: string;
+            error?: string;
+            citations?: CitationOut[];
+            insufficientEvidence?: boolean;
+          };
+          if (event.type === 'delta') {
+            answer += event.text ?? '';
+            patchAssistant({ content: answer });
+          } else if (event.type === 'done') {
+            patchAssistant({
+              content: answer,
+              citations: event.citations,
+              insufficientEvidence: event.insufficientEvidence,
+            });
+          } else if (event.type === 'error') {
+            streamError = event.error ?? 'Generation failed';
+          }
+        }
+      }
+
+      if (streamError) {
+        setError(streamError);
+        if (!answer) setMessages((m) => m.filter((msg) => msg.id !== assistantId));
+      }
+      router.refresh();
+    } catch {
+      setError('Connection interrupted. Please try again.');
+      setMessages((m) => m.filter((msg) => msg.id !== assistantId));
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (

@@ -73,10 +73,14 @@ Administration → Hardening.
 - `typecheck`, `lint`, `build`, and `test` all green.
 
 ## Known limitations / remaining risks
-- **Rate limiter is in-memory** (per instance). Multi-instance deploys need a
-  shared store (Redis / DB counter) — interface is isolated for easy swap.
-- **Streaming** is implemented in the provider layer; the chat UI currently uses
-  the non-streaming, fully-persisted path. Wiring SSE end-to-end is a follow-on.
+- **Rate limiter** now has a pluggable store: in-memory (default, per instance)
+  and a shared **Postgres** store (`RATE_LIMIT_STORE=postgres`, backed by the
+  `rate_limit_counters` table) for multi-instance deploys. A Redis/Upstash store
+  can implement the same `RateLimitStore` interface without touching call sites.
+- **Streaming** is wired end-to-end: `streamAnswer` (RAG) → NDJSON route at
+  `POST /api/chat/stream` → the chat UI renders tokens as they arrive, then
+  finalizes citations. The answer is persisted identically to the blocking path.
+  The non-streaming `askAction` remains as a fallback/API.
 - **Response/summary caching** is documented (org-isolated cache key) but not yet
   implemented.
 - **DOCX/PDF report export** and a Markdown renderer are follow-ons (reports are

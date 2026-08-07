@@ -75,7 +75,9 @@ const schema = z.object({
   CHUNK_TARGET_TOKENS: int(700),
   CHUNK_OVERLAP_TOKENS: int(100),
 
-  // Rate limiting (public webhook / API)
+  // Rate limiting (public webhook / API). `memory` is per-instance; `postgres`
+  // shares one counter across instances for a global limit.
+  RATE_LIMIT_STORE: z.enum(['memory', 'postgres']).default('memory'),
   RATE_LIMIT_WINDOW_SECONDS: int(60),
   RATE_LIMIT_MAX_REQUESTS: int(60),
 

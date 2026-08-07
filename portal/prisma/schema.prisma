@@ -527,6 +527,20 @@ model OrganizationSetting {
   @@map("organization_settings")
 }
 
+/// Fixed-window rate-limit counters. Used only when RATE_LIMIT_STORE=postgres
+/// so multiple app instances share one limit. The in-memory store needs no rows.
+model RateLimitCounter {
+  id          String   @id @default(uuid()) @db.Uuid
+  bucketKey   String
+  windowStart DateTime
+  count       Int      @default(0)
+  expiresAt   DateTime
+
+  @@unique([bucketKey, windowStart])
+  @@index([expiresAt])
+  @@map("rate_limit_counters")
+}
+
 model ApiKey {
   id             String    @id @default(uuid()) @db.Uuid
   organizationId String    @db.Uuid

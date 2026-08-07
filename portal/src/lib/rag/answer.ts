@@ -240,3 +240,80 @@ export async function answerQuestion(
     usage: { inputTokens: result.inputTokens, outputTokens: result.outputTokens },
   };
 }
+
+const INSUFFICIENT_MESSAGE =
+  'The available documents do not contain enough information to answer this question.';
+
+export interface StreamFinal {
+  insufficientEvidence: boolean;
+  citations: CitationOut[];
+  modelId: string;
+  usage: { inputTokens: number; outputTokens: number };
+}
+
+/**
+ * Streaming variant of {@link answerQuestion}. Yields answer text deltas as the
+ * model produces them and returns the final citations/usage. Persistence (the
+ * message, citations, usage, and audit record) happens once the stream
+ * completes — identical to the non-streaming path — so a streamed answer is
+ * saved exactly like a blocking one. Same tenant scoping: `prepare` runs the
+ * org-scoped retrieval and usage-limit checks before any token is emitted.
+ */
+export async function* streamAnswer(
+  ctx: OrgContext,
+  conversationId: string,
+  rawQuestion: string,
+  documentScope: string[] = [],
+): AsyncGenerator<string, StreamFinal, void> {
+  await recordAudit({
+    action: AuditAction.AI_QUERY_SUBMITTED,
+    organizationId: ctx.organization.id,
+    userId: ctx.user.id,
+    resourceType: 'conversation',
+    resourceId: conversationId,
+  });
+
+  const prep = await prepare(ctx, rawQuestion, documentScope);
+  let full = '';
+  let usage = { inputTokens: 0, outputTokens: 0 };
+
+  if (prep.usedChunks.length === 0) {
+    // No relevant evidence: stream the fixed insufficient-evidence message
+    // rather than calling the model at all.
+    for (const word of INSUFFICIENT_MESSAGE.split(' ')) {
+      full += full ? ` ${word}` : word;
+      yield full === word ? word : ` ${word}`;
+    }
+  } else {
+    const ai = getAIProvider();
+    const gen = ai.streamText({
+      system: prep.system,
+      messages: [{ role: 'user', content: prep.question }],
+      modelId: prep.modelId,
+      maxOutputTokens: prep.maxOutputTokens,
+    });
+    let next = await gen.next();
+    while (!next.done) {
+      full += next.value;
+      yield next.value;
+      next = await gen.next();
+    }
+    usage = { inputTokens: next.value.inputTokens, outputTokens: next.value.outputTokens };
+  }
+
+  const insufficientEvidence =
+    prep.usedChunks.length === 0 ||
+    /do not contain enough information|does not contain enough information/i.test(full);
+  const citations = insufficientEvidence ? [] : buildCitations(prep);
+
+  await persist(ctx, conversationId, prep, full, citations, usage, insufficientEvidence);
+
+  logger.info('ai.answer.stream', {
+    organizationId: ctx.organization.id,
+    action: 'ai.answer',
+    status: 'success',
+    resourceId: conversationId,
+  });
+
+  return { insufficientEvidence, citations, modelId: prep.modelId, usage };
+}

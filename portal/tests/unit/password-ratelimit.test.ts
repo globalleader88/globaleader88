@@ -20,9 +20,9 @@ describe('password + token crypto', () => {
 });
 
 describe('rate limiting', () => {
-  it('allows up to max then blocks within the window', () => {
+  it('allows up to max then blocks within the window', async () => {
     const key = `test:${Math.random()}`;
-    for (let i = 0; i < 3; i++) expect(rateLimit(key, 3, 60).allowed).toBe(true);
-    expect(rateLimit(key, 3, 60).allowed).toBe(false);
+    for (let i = 0; i < 3; i++) expect((await rateLimit(key, 3, 60)).allowed).toBe(true);
+    expect((await rateLimit(key, 3, 60)).allowed).toBe(false);
   });
 });

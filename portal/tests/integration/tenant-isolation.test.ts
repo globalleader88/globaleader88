@@ -26,8 +26,12 @@ describe.skipIf(!DB)('tenant isolation (Postgres + pgvector)', () => {
     const { env } = await import('@/env');
     const { randomUUID } = await import('node:crypto');
 
-    const orgA = await prisma.organization.create({ data: { name: 'A', slug: `a-${randomUUID()}` } });
-    const orgB = await prisma.organization.create({ data: { name: 'B', slug: `b-${randomUUID()}` } });
+    const orgA = await prisma.organization.create({
+      data: { name: 'A', slug: `a-${randomUUID()}` },
+    });
+    const orgB = await prisma.organization.create({
+      data: { name: 'B', slug: `b-${randomUUID()}` },
+    });
     const userA = await prisma.user.create({ data: { email: `a-${randomUUID()}@t.local` } });
 
     async function doc(orgId: string) {

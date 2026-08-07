@@ -63,7 +63,7 @@ async function upsertLocalUser(identity: {
 
 export async function signInAction(_prev: FormState, formData: FormData): Promise<FormState> {
   const meta = getRequestMeta();
-  const limit = rateLimit(`signin:${meta.ipAddress ?? 'unknown'}`, 10, 60);
+  const limit = await rateLimit(`signin:${meta.ipAddress ?? 'unknown'}`, 10, 60);
   if (!limit.allowed) return { ok: false, error: 'Too many attempts. Please wait and try again.' };
 
   const parsed = emailPassword.safeParse({
