@@ -1,0 +1,79 @@
+# Local development stack for the Global Connects Client Intelligence Portal.
+#
+#   docker compose up            # postgres + minio only (run app/worker on host)
+#   docker compose --profile full up --build   # everything in containers
+#
+# Defaults use STORAGE_DRIVER=local and AI_DRIVER=mock so nothing external is
+# required. Set STORAGE_DRIVER=minio to exercise the S3 code path locally.
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: portal
+      POSTGRES_PASSWORD: portal
+      POSTGRES_DB: portal
+    ports:
+      - '5432:5432'
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U portal -d portal']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - '9000:9000'
+      - '9001:9001'
+    volumes:
+      - minio_data:/data
+
+  app:
+    profiles: ['full']
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: sh -c "npx prisma migrate deploy && npm run seed && npm run start"
+    environment:
+      DATABASE_URL: postgresql://portal:portal@db:5432/portal
+      DIRECT_URL: postgresql://portal:portal@db:5432/portal
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      SESSION_SECRET: dev-session-secret-change-me-32chars-min!!
+      ENABLE_DEV_AUTH: 'true'
+      STORAGE_DRIVER: local
+      AI_DRIVER: mock
+      NODE_ENV: development
+    ports:
+      - '3000:3000'
+    depends_on:
+      db:
+        condition: service_healthy
+
+  worker:
+    profiles: ['full']
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: sh -c "npm run worker"
+    environment:
+      DATABASE_URL: postgresql://portal:portal@db:5432/portal
+      DIRECT_URL: postgresql://portal:portal@db:5432/portal
+      SESSION_SECRET: dev-session-secret-change-me-32chars-min!!
+      ENABLE_DEV_AUTH: 'true'
+      STORAGE_DRIVER: local
+      AI_DRIVER: mock
+      NODE_ENV: development
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  db_data:
+  minio_data:

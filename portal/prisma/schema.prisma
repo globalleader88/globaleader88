@@ -1,0 +1,547 @@
+// Global Connects Client Intelligence Portal — data model.
+//
+// Multi-tenant invariant: every client-owned record carries an immutable
+// `organizationId`. The application layer (src/lib/authz) is responsible for
+// injecting the authorized organization into every query. This schema encodes
+// the foreign keys, indexes, and org-scoped unique constraints that back that
+// guarantee, but the database alone does not enforce tenancy — the repository
+// layer does. See docs/portal/THREAT_MODEL.md.
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  directUrl  = env("DIRECT_URL")
+  extensions = [vector]
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum PlatformRole {
+  SUPER_ADMIN
+  MEMBER
+}
+
+enum OrgRole {
+  ADMIN
+  ANALYST
+  VIEWER
+}
+
+enum OrgStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum MembershipStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  REVOKED
+}
+
+enum DocumentStatus {
+  UPLOADING
+  PENDING
+  PROCESSING
+  READY
+  FAILED
+  DELETED
+}
+
+enum ClassificationLevel {
+  PUBLIC
+  INTERNAL
+  CONFIDENTIAL
+  RESTRICTED
+}
+
+enum ProcessingJobStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+  RETRYING
+  CANCELLED
+}
+
+enum JobType {
+  DOCUMENT_PROCESSING
+  RETENTION_SWEEP
+  DATA_EXPORT
+}
+
+enum MessageRole {
+  USER
+  ASSISTANT
+  SYSTEM
+}
+
+enum RetentionMode {
+  INDEFINITE
+  DELETE_AFTER_DAYS
+}
+
+enum ReportType {
+  DOCUMENT_SUMMARY
+  REQUIREMENTS_EXTRACTION
+  RISK_ANALYSIS
+  COMPLIANCE_MATRIX
+  COMPARISON
+  EXECUTIVE_BRIEF
+  ACTION_ITEMS
+}
+
+enum ReportStatus {
+  DRAFT
+  GENERATING
+  COMPLETED
+  FAILED
+}
+
+// ---------------------------------------------------------------------------
+// Identity & tenancy
+// ---------------------------------------------------------------------------
+
+model User {
+  id            String       @id @default(uuid()) @db.Uuid
+  email         String       @unique
+  name          String?
+  // Cognito subject ("sub"). Null for dev-adapter accounts created locally.
+  cognitoSub    String?      @unique
+  // PBKDF2 hash — used ONLY by the dev auth adapter. Never populated in prod.
+  devPasswordHash String?
+  platformRole  PlatformRole @default(MEMBER)
+  status        UserStatus   @default(ACTIVE)
+  emailVerified Boolean      @default(false)
+  mfaEnabled    Boolean      @default(false)
+  lastLoginAt   DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  deletedAt     DateTime?
+
+  memberships       OrganizationMembership[]
+  uploadedDocuments Document[]               @relation("UploadedBy")
+  messages          Message[]
+  reports           GeneratedReport[]
+  auditLogs         AuditLog[]
+  sentInvitations   OrganizationInvitation[] @relation("InvitedBy")
+  usageRecords      UsageRecord[]
+
+  @@index([status])
+  @@map("users")
+}
+
+model Organization {
+  id         String    @id @default(uuid()) @db.Uuid
+  name       String
+  slug       String    @unique
+  status     OrgStatus @default(ACTIVE)
+  // Denormalized soft limits; hard limits live on OrganizationSetting.
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
+
+  memberships     OrganizationMembership[]
+  invitations     OrganizationInvitation[]
+  documents       Document[]
+  documentChunks  DocumentChunk[]
+  conversations   Conversation[]
+  messages        Message[]
+  citations       Citation[]
+  reports         GeneratedReport[]
+  usageRecords    UsageRecord[]
+  auditLogs       AuditLog[]
+  retentionPolicy RetentionPolicy?
+  processingJobs  ProcessingJob[]
+  settings        OrganizationSetting?
+  apiKeys         ApiKey[]
+
+  @@index([status])
+  @@map("organizations")
+}
+
+model OrganizationMembership {
+  id             String           @id @default(uuid()) @db.Uuid
+  organizationId String           @db.Uuid
+  userId         String           @db.Uuid
+  role           OrgRole          @default(VIEWER)
+  status         MembershipStatus @default(ACTIVE)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+  @@index([userId])
+  @@index([organizationId, role])
+  @@map("organization_memberships")
+}
+
+model OrganizationInvitation {
+  id             String           @id @default(uuid()) @db.Uuid
+  organizationId String           @db.Uuid
+  email          String
+  role           OrgRole          @default(VIEWER)
+  // SHA-256 of the raw invite token. Raw token is emailed once, never stored.
+  tokenHash      String           @unique
+  status         InvitationStatus @default(PENDING)
+  invitedById    String           @db.Uuid
+  expiresAt      DateTime
+  acceptedAt     DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  invitedBy    User         @relation("InvitedBy", fields: [invitedById], references: [id])
+
+  @@unique([organizationId, email, status])
+  @@index([organizationId])
+  @@map("organization_invitations")
+}
+
+// ---------------------------------------------------------------------------
+// Documents & processing
+// ---------------------------------------------------------------------------
+
+model Document {
+  id               String              @id @default(uuid()) @db.Uuid
+  organizationId   String              @db.Uuid
+  title            String
+  originalFileName String
+  mimeType         String
+  fileSizeBytes    BigInt
+  sha256           String?
+  status           DocumentStatus      @default(UPLOADING)
+  classification   ClassificationLevel @default(CONFIDENTIAL)
+  // Points at the current DocumentVersion; the actual bytes live in S3.
+  currentVersionId String?             @db.Uuid @unique
+  uploadedById     String              @db.Uuid
+  pageCount        Int?
+  chunkCount       Int                 @default(0)
+  processingError  String?
+  retentionDate    DateTime?
+  legalHold        Boolean             @default(false)
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  deletedAt        DateTime?
+
+  organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  uploadedBy   User              @relation("UploadedBy", fields: [uploadedById], references: [id])
+  versions     DocumentVersion[] @relation("DocumentVersions")
+  currentVersion DocumentVersion? @relation("CurrentVersion", fields: [currentVersionId], references: [id])
+  chunks       DocumentChunk[]
+  citations    Citation[]
+  jobs         ProcessingJob[]
+
+  @@index([organizationId, status])
+  @@index([organizationId, deletedAt])
+  @@index([organizationId, createdAt])
+  @@map("documents")
+}
+
+model DocumentVersion {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @db.Uuid
+  documentId     String   @db.Uuid
+  versionNumber  Int
+  // Server-controlled S3 object key. The browser never chooses this.
+  s3Key          String
+  s3Bucket       String
+  fileSizeBytes  BigInt
+  sha256         String?
+  mimeType       String
+  createdAt      DateTime @default(now())
+
+  document       Document  @relation("DocumentVersions", fields: [documentId], references: [id], onDelete: Cascade)
+  currentForDoc  Document? @relation("CurrentVersion")
+
+  @@unique([documentId, versionNumber])
+  @@index([organizationId])
+  @@map("document_versions")
+}
+
+/// Chunk text + pgvector embedding. Tenant-scoped for defence in depth so a
+/// missing join filter still cannot leak across organizations.
+model DocumentChunk {
+  id             String  @id @default(uuid()) @db.Uuid
+  organizationId String  @db.Uuid
+  documentId     String  @db.Uuid
+  versionId      String  @db.Uuid
+  chunkIndex     Int
+  content        String
+  tokenCount     Int     @default(0)
+  // Location metadata: page number, sheet name, section heading, row range, etc.
+  page           Int?
+  section        String?
+  sheet          String?
+  rowRange       String?
+  // pgvector column. Dimension must match AWS_BEDROCK_EMBEDDING_DIMENSION.
+  embedding      Unsupported("vector(1024)")?
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  document     Document     @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, versionId, chunkIndex])
+  @@index([organizationId])
+  @@index([documentId])
+  @@map("document_chunks")
+}
+
+model ProcessingJob {
+  id             String              @id @default(uuid()) @db.Uuid
+  organizationId String              @db.Uuid
+  documentId     String?             @db.Uuid
+  type           JobType             @default(DOCUMENT_PROCESSING)
+  status         ProcessingJobStatus @default(QUEUED)
+  // Idempotency: a job is claimed by exactly one worker via a lock token.
+  lockedBy       String?
+  lockedAt       DateTime?
+  attempts       Int                 @default(0)
+  maxAttempts    Int                 @default(3)
+  runAfter       DateTime            @default(now())
+  lastError      String?
+  payload        Json?
+  metrics        Json?
+  startedAt      DateTime?
+  finishedAt     DateTime?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  document     Document?    @relation(fields: [documentId], references: [id], onDelete: SetNull)
+
+  @@index([status, runAfter])
+  @@index([organizationId])
+  @@map("processing_jobs")
+}
+
+// ---------------------------------------------------------------------------
+// Conversations & RAG
+// ---------------------------------------------------------------------------
+
+model Conversation {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @db.Uuid
+  createdById    String   @db.Uuid
+  title          String   @default("New conversation")
+  // Optional restriction of retrieval to a subset of documents.
+  documentScope  String[] @default([])
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  deletedAt      DateTime?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  messages     Message[]
+  citations    Citation[]
+
+  @@index([organizationId, createdById])
+  @@index([organizationId, updatedAt])
+  @@map("conversations")
+}
+
+model Message {
+  id             String      @id @default(uuid()) @db.Uuid
+  organizationId String      @db.Uuid
+  conversationId String      @db.Uuid
+  userId         String?     @db.Uuid
+  role           MessageRole
+  content        String
+  // Whether retrieval found sufficient evidence to answer.
+  insufficientEvidence Boolean @default(false)
+  modelId        String?
+  inputTokens    Int?
+  outputTokens   Int?
+  createdAt      DateTime    @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  citations    Citation[]
+
+  @@index([conversationId])
+  @@index([organizationId])
+  @@map("messages")
+}
+
+model Citation {
+  id             String  @id @default(uuid()) @db.Uuid
+  organizationId String  @db.Uuid
+  conversationId String  @db.Uuid
+  messageId      String  @db.Uuid
+  documentId     String  @db.Uuid
+  chunkId        String? @db.Uuid
+  excerpt        String
+  page           Int?
+  section        String?
+  sheet          String?
+  rowRange       String?
+  similarity     Float
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  message      Message      @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  document     Document     @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([messageId])
+  @@index([organizationId])
+  @@map("citations")
+}
+
+// ---------------------------------------------------------------------------
+// Reports
+// ---------------------------------------------------------------------------
+
+model GeneratedReport {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @db.Uuid
+  createdById    String       @db.Uuid
+  type           ReportType
+  status         ReportStatus @default(DRAFT)
+  title          String
+  // Rendered Markdown output. DOCX/PDF exporters can be layered on later.
+  contentMarkdown String?
+  modelId        String?
+  documentScope  String[]     @default([])
+  citations      Json?
+  error          String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  deletedAt      DateTime?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdBy    User         @relation(fields: [createdById], references: [id])
+
+  @@index([organizationId, type])
+  @@map("generated_reports")
+}
+
+// ---------------------------------------------------------------------------
+// Usage, audit, retention, settings, API keys
+// ---------------------------------------------------------------------------
+
+model UsageRecord {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @db.Uuid
+  userId         String?  @db.Uuid
+  // "chat", "embedding", "report", "classification" ...
+  kind           String
+  modelId        String?
+  inputTokens    Int      @default(0)
+  outputTokens   Int      @default(0)
+  embeddingTokens Int     @default(0)
+  // Estimated cost in micro-USD (1e-6 USD) to avoid float drift.
+  estimatedCostMicroUsd BigInt @default(0)
+  requestId      String?
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, userId, createdAt])
+  @@map("usage_records")
+}
+
+/// Append-only from the application's perspective (no update/delete paths).
+model AuditLog {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String?  @db.Uuid
+  userId         String?  @db.Uuid
+  action         String
+  resourceType   String?
+  resourceId     String?
+  outcome        String   @default("success")
+  ipAddress      String?
+  userAgent      String?
+  requestId      String?
+  // Only non-sensitive metadata. Never document contents or secrets.
+  metadata       Json?
+  createdAt      DateTime @default(now())
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  user         User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, createdAt])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model RetentionPolicy {
+  id             String        @id @default(uuid()) @db.Uuid
+  organizationId String        @unique @db.Uuid
+  mode           RetentionMode @default(INDEFINITE)
+  retentionDays  Int?
+  // Grace period between soft-delete and permanent purge of S3 + chunks.
+  purgeGraceDays Int           @default(7)
+  updatedById    String?       @db.Uuid
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("retention_policies")
+}
+
+model OrganizationSetting {
+  id             String  @id @default(uuid()) @db.Uuid
+  organizationId String  @unique @db.Uuid
+  // Cost controls.
+  monthlyTokenLimit    BigInt @default(5000000)
+  dailyQueryLimitPerUser Int  @default(200)
+  maxRetrievedChunks   Int    @default(8)
+  maxContextTokens     Int    @default(6000)
+  maxOutputTokens      Int    @default(1024)
+  warnThresholdPercent Int    @default(80)
+  // Model routing overrides (fall back to env when null).
+  lowCostModelId  String?
+  standardModelId String?
+  advancedModelId String?
+  // Retrieval tuning.
+  similarityThreshold Float @default(0.2)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("organization_settings")
+}
+
+model ApiKey {
+  id             String    @id @default(uuid()) @db.Uuid
+  organizationId String    @db.Uuid
+  name           String
+  // SHA-256 of the raw key. Raw key shown once at creation, never stored.
+  keyHash        String    @unique
+  prefix         String
+  scopes         String[]  @default([])
+  lastUsedAt     DateTime?
+  expiresAt      DateTime?
+  revokedAt      DateTime?
+  createdAt      DateTime  @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@map("api_keys")
+}
