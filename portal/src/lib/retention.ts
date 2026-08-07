@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/db';
 import { getStorage } from '@/lib/storage';
 import { recordAudit, AuditAction } from '@/lib/audit';
+import { invalidateOrgCache } from '@/lib/rag/cache';
 import { logger } from '@/lib/logger';
 
 /**
@@ -69,6 +70,8 @@ export async function softDeleteDocument(
   });
   // Embeddings are removed immediately so deleted docs cannot be retrieved.
   await prisma.documentChunk.deleteMany({ where: { organizationId, documentId } });
+  // A deleted document must not surface via a cached answer either.
+  await invalidateOrgCache(organizationId);
   await recordAudit({
     action: AuditAction.DOCUMENT_DELETED,
     organizationId,

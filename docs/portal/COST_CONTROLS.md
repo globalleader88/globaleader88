@@ -214,3 +214,15 @@ These formulas use the same rates as `pricing.ts`; keep both in sync when prices
 change. Because generation dominates, the two biggest levers remain **which
 model** the task routes to and **how many output tokens** it is allowed to
 produce.
+
+## Response caching — implementation status
+
+Response caching is **implemented** and org-isolated (`src/lib/rag/cache.ts`,
+`response_cache` table). The cache key hashes organization + authorized document
+set + model + prompt version + normalized question, and every lookup **also**
+filters by `organizationId`, so a confidential answer is never served across
+tenants. Cache hits skip both embedding and generation (no Bedrock cost) while
+still counting as one query for per-user daily-limit fairness (recorded with
+zero tokens). Entries are invalidated when the org's documents or retrieval/model
+settings change, with a TTL backstop. Configure via `RESPONSE_CACHE_ENABLED` and
+`RESPONSE_CACHE_TTL_SECONDS`.

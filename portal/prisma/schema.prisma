@@ -172,6 +172,7 @@ model Organization {
   processingJobs  ProcessingJob[]
   settings        OrganizationSetting?
   apiKeys         ApiKey[]
+  responseCache   ResponseCache[]
 
   @@index([status])
   @@map("organizations")
@@ -525,6 +526,32 @@ model OrganizationSetting {
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@map("organization_settings")
+}
+
+/// Cached AI answers. The cache key already encodes organization + authorized
+/// document set + model + prompt version + normalized question, and every read
+/// ALSO filters by organizationId — a response is never served across tenants.
+/// Entries are invalidated when the org's documents or settings change, with a
+/// TTL as a backstop.
+model ResponseCache {
+  id                   String   @id @default(uuid()) @db.Uuid
+  organizationId       String   @db.Uuid
+  cacheKey             String   @unique
+  modelId              String
+  promptVersion        String
+  answer               String
+  citations            Json?
+  insufficientEvidence Boolean  @default(false)
+  hitCount             Int      @default(0)
+  expiresAt            DateTime
+  createdAt            DateTime @default(now())
+  lastAccessedAt       DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([expiresAt])
+  @@map("response_cache")
 }
 
 /// Fixed-window rate-limit counters. Used only when RATE_LIMIT_STORE=postgres

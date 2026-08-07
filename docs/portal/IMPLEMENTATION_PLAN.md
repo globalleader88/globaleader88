@@ -81,8 +81,13 @@ Administration → Hardening.
   `POST /api/chat/stream` → the chat UI renders tokens as they arrive, then
   finalizes citations. The answer is persisted identically to the blocking path.
   The non-streaming `askAction` remains as a fallback/API.
-- **Response/summary caching** is documented (org-isolated cache key) but not yet
-  implemented.
+- **Response caching** is implemented and org-isolated: the cache key hashes
+  organization + authorized document set + model + prompt version + normalized
+  question, and every lookup also filters by `organizationId`, so answers are
+  never shared across tenants. Entries are invalidated when the org's documents
+  (processing completed, deletion) or retrieval/model settings change, with a
+  TTL backstop (`RESPONSE_CACHE_TTL_SECONDS`). Toggle via `RESPONSE_CACHE_ENABLED`.
+  Backed by the `response_cache` table. Summary caching can reuse the same seam.
 - **DOCX/PDF report export** and a Markdown renderer are follow-ons (reports are
   Markdown today).
 - **Organization data export** and full account/org self-deletion flows are
@@ -101,3 +106,5 @@ Administration → Hardening.
 - Password/token crypto + rate limiting.
 - Authorization (role hierarchy, forged-hint rejection, cross-org 404).
 - Vector search tenancy (org filter + threshold + dimension guard).
+- Response-cache key isolation (org, document scope, model, prompt version,
+  question normalization).

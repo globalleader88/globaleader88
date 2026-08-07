@@ -8,6 +8,7 @@ import { extractText } from './extract';
 import { chunkDocument } from './chunk';
 import { sniffMatchesMime } from './validation';
 import { insertChunkWithEmbedding, deleteChunksForDocument } from '@/lib/rag/vectors';
+import { invalidateOrgCache } from '@/lib/rag/cache';
 
 /**
  * Document processing pipeline. Invoked by the job worker for a single
@@ -105,6 +106,9 @@ export async function processDocument(documentId: string): Promise<ProcessResult
       processingError: null,
     },
   });
+
+  // New content changes retrieval results — drop any cached answers for the org.
+  await invalidateOrgCache(document.organizationId);
 
   const metrics: ProcessResult = { chunkCount: chunks.length, pageCount, tokenTotal };
   await recordAudit({

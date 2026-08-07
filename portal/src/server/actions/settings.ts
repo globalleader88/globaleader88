@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { requireOrganizationMembership } from '@/lib/authz';
 import { prisma } from '@/lib/db';
 import { recordAudit, AuditAction } from '@/lib/audit';
+import { invalidateOrgCache } from '@/lib/rag/cache';
 import { toPublicError } from '@/lib/errors';
 
 export type SettingsFormResult = { ok: boolean; error?: string; message?: string };
@@ -49,6 +50,8 @@ export async function updateSettingsAction(
         similarityThreshold: parsed.data.similarityThreshold,
       },
     });
+    // Retrieval tuning / model routing changed → cached answers may be stale.
+    await invalidateOrgCache(ctx.organization.id);
     await recordAudit({
       action: AuditAction.ORG_SETTING_CHANGED,
       organizationId: ctx.organization.id,
