@@ -37,6 +37,15 @@ const schema = z.object({
   // Auth adapter selection
   ENABLE_DEV_AUTH: bool(true),
 
+  // THROWAWAY hosted demo only: downgrades the production safety guardrails to a
+  // warning so the app can boot with mock AI + local storage + dev auth. Never
+  // enable for a real deployment.
+  ALLOW_INSECURE_DEMO: bool(false),
+
+  // Run the background job worker inside the web server process (single-service
+  // deploys / free tiers). For scale, run `npm run worker` as its own service.
+  RUN_WORKER_IN_WEB: bool(false),
+
   // AWS core
   AWS_REGION: z.string().default('us-east-1'),
   AWS_ACCESS_KEY_ID: z.string().optional(),
@@ -121,9 +130,17 @@ function load(): Env {
     if (!env.COGNITO_USER_POOL_ID || !env.COGNITO_CLIENT_ID)
       problems.push('Cognito configuration is required in production');
     if (problems.length > 0) {
-      throw new Error(
-        `Unsafe production configuration:\n${problems.map((p) => `  - ${p}`).join('\n')}`,
-      );
+      const message = `Unsafe production configuration:\n${problems.map((p) => `  - ${p}`).join('\n')}`;
+      if (env.ALLOW_INSECURE_DEMO) {
+        // Explicit, loud opt-out for a THROWAWAY hosted demo (mock AI + local
+        // storage + dev auth). Never set this for a real deployment.
+        // eslint-disable-next-line no-console
+        console.warn(
+          `\n⚠️  ALLOW_INSECURE_DEMO is on — booting an INSECURE DEMO. Do NOT use for real data.\n${message}\n`,
+        );
+      } else {
+        throw new Error(message);
+      }
     }
   }
 

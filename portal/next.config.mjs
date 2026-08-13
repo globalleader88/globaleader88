@@ -5,6 +5,8 @@ const nextConfig = {
   // Native/large parsers used only in server code (workers, route handlers).
   experimental: {
     serverComponentsExternalPackages: ['pdf-parse', 'mammoth', 'xlsx'],
+    // Enables src/instrumentation.ts (used to run the job worker in-process).
+    instrumentationHook: true,
   },
   async headers() {
     // Baseline secure headers. A CSP is applied per-request in middleware with a nonce.
