@@ -8,6 +8,15 @@ needed). Deploying is a few clicks.
 
 There are two modes: a zero-setup **Demo** and a **Production** deployment.
 
+## One-click (Blueprint)
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/globalleader88/globaleader88)
+
+The button reads `render.yaml` from the repository's **default branch**, so
+merge the portal to your default branch first (or use New → Blueprint and pick
+the feature branch). For production, run the AWS setup first:
+`portal/deploy/aws/provision.sh` (see `portal/deploy/aws/README.md`).
+
 ## Prerequisites
 
 - A [Render](https://render.com) account and Render connected to your GitHub.
