@@ -9,6 +9,15 @@ databases:
     user: leadengine
     plan: free                       # free Postgres expires after 90 days; upgrade for production
 
+  # Postgres for the Client Intelligence Portal. pgvector is enabled by the
+  # portal's first migration (CREATE EXTENSION vector); Render's Postgres ships
+  # with pgvector available.
+  - name: portal-db
+    databaseName: portal
+    user: portal
+    plan: free
+    postgresMajorVersion: "16"
+
 services:
   - type: web
     name: leadengine-api
@@ -54,3 +63,92 @@ services:
     runtime: static
     buildCommand: "mkdir -p public && cp -r index.html tracker.html css js assets public/"
     staticPublishPath: ./public
+
+  # ---------------------------------------------------------------------------
+  # Client Intelligence Portal (Next.js).
+  #
+  # As shipped this deploys in DEMO mode: mock AI + local (ephemeral) storage +
+  # dev auth, so you can click around immediately with zero cloud setup. The job
+  # worker runs inside this web service (RUN_WORKER_IN_WEB), so no extra service
+  # is needed. Migrations run on every deploy via preDeployCommand.
+  #
+  # DEMO login: after the first deploy, open the service Shell and run
+  # `npm run seed` — it prints the demo logins (admin@globalconnects.local + the
+  # generated SEED_ADMIN_PASSWORD from this service's Environment tab).
+  #
+  # To go to PRODUCTION: delete the DEMO block below, uncomment the PRODUCTION
+  # block, set the secret values (sync:false → filled in the dashboard), and set
+  # AWS Bedrock + S3/KMS + Cognito. See docs/portal/DEPLOY_RENDER.md.
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: gc-portal
+    runtime: docker
+    dockerfilePath: ./portal/Dockerfile
+    dockerContext: ./portal
+    plan: free                       # free spins down when idle + limited RAM; upgrade for production
+    healthCheckPath: /api/health
+    preDeployCommand: "npx prisma migrate deploy"
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: portal-db
+          property: connectionString
+      - key: DIRECT_URL
+        fromDatabase:
+          name: portal-db
+          property: connectionString
+      - key: NODE_ENV
+        value: production
+      # After the first deploy, set this to your real service URL and redeploy.
+      - key: NEXT_PUBLIC_APP_URL
+        value: https://gc-portal.onrender.com
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: RUN_WORKER_IN_WEB       # process documents inside the web service
+        value: "true"
+      # --- DEMO block (remove for production) ---
+      - key: ALLOW_INSECURE_DEMO
+        value: "true"
+      - key: ENABLE_DEV_AUTH
+        value: "true"
+      - key: AI_DRIVER
+        value: mock
+      - key: STORAGE_DRIVER
+        value: local
+      - key: SEED_ADMIN_EMAIL
+        value: admin@globalconnects.local
+      - key: SEED_ADMIN_PASSWORD     # auto-generated; view in the Environment tab
+        generateValue: true
+      # --- PRODUCTION block (uncomment; fill secrets in the dashboard) ---
+      # - key: ENABLE_DEV_AUTH
+      #   value: "false"
+      # - key: AI_DRIVER
+      #   value: bedrock
+      # - key: STORAGE_DRIVER
+      #   value: s3
+      # - key: AWS_REGION
+      #   value: us-east-1
+      # - key: AWS_ACCESS_KEY_ID
+      #   sync: false
+      # - key: AWS_SECRET_ACCESS_KEY
+      #   sync: false
+      # - key: AWS_S3_BUCKET
+      #   sync: false
+      # - key: AWS_KMS_KEY_ID
+      #   sync: false
+      # - key: AWS_BEDROCK_CHAT_MODEL_ID
+      #   value: anthropic.claude-3-5-sonnet-20240620-v1:0
+      # - key: AWS_BEDROCK_LOW_COST_MODEL_ID
+      #   value: anthropic.claude-3-haiku-20240307-v1:0
+      # - key: AWS_BEDROCK_ADVANCED_MODEL_ID
+      #   value: anthropic.claude-3-5-sonnet-20240620-v1:0
+      # - key: AWS_BEDROCK_EMBEDDING_MODEL_ID
+      #   value: amazon.titan-embed-text-v2:0
+      # - key: COGNITO_USER_POOL_ID
+      #   sync: false
+      # - key: COGNITO_CLIENT_ID
+      #   sync: false
+      # - key: COGNITO_CLIENT_SECRET
+      #   sync: false
+      # - key: COGNITO_DOMAIN
+      #   sync: false

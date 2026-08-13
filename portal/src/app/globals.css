@@ -1,0 +1,96 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * The Global Connects — futuristic "operations console" theme.
+ * Deliberately a single dark world (navy ground + luminous blue accent).
+ * Every component reads these tokens, so the palette drives the whole app.
+ */
+@layer base {
+  :root {
+    --background: 222 48% 7%;
+    --foreground: 213 40% 96%;
+    --card: 220 40% 13%;
+    --card-foreground: 213 40% 96%;
+    --popover: 220 44% 11%;
+    --popover-foreground: 213 40% 96%;
+    /* Brand teal (#00ACCD) as the primary accent, with dark text on it for AA. */
+    --primary: 190 100% 42%;
+    --primary-foreground: 200 60% 9%;
+    --secondary: 205 30% 18%;
+    --secondary-foreground: 205 30% 95%;
+    --muted: 205 28% 16%;
+    --muted-foreground: 205 20% 68%;
+    --accent: 200 34% 22%;
+    --accent-foreground: 205 30% 95%;
+    --destructive: 0 72% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 205 26% 22%;
+    --input: 205 26% 22%;
+    --ring: 190 100% 42%;
+    --radius: 0.6rem;
+
+    /* Brand secondary accents (green #A6CE39, orange #FAA619). */
+    --accent-2: 74 57% 52%;
+    --accent-3: 38 96% 54%;
+    --glow: 190 100% 42%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply text-foreground;
+    background-color: hsl(var(--background));
+    background-image:
+      radial-gradient(1100px 620px at 78% -8%, hsl(var(--primary) / 0.16), transparent 60%),
+      radial-gradient(900px 600px at 6% 108%, hsl(74 55% 45% / 0.12), transparent 55%);
+    background-attachment: fixed;
+    min-height: 100vh;
+  }
+
+  /* Faint luminous grid behind everything. */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.5;
+    background-image:
+      linear-gradient(hsl(217 40% 60% / 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(217 40% 60% / 0.05) 1px, transparent 1px);
+    background-size: 46px 46px;
+    -webkit-mask-image: radial-gradient(120% 90% at 50% 0%, #000 40%, transparent 100%);
+    mask-image: radial-gradient(120% 90% at 50% 0%, #000 40%, transparent 100%);
+  }
+
+  /* Keep real content above the grid. */
+  body > * {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+@layer components {
+  /* Glass surface used by cards and the shell chrome. */
+  .glass {
+    background: hsl(var(--card) / 0.62);
+    backdrop-filter: blur(14px);
+    border: 1px solid hsl(var(--border));
+    box-shadow:
+      inset 0 1px 0 hsl(0 0% 100% / 0.03),
+      0 18px 40px -28px hsl(222 60% 2% / 0.9);
+  }
+
+  /* Luminous status dot for chips/badges. */
+  .glow-dot {
+    box-shadow: 0 0 8px currentColor;
+  }
+}
