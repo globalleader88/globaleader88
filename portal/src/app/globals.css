@@ -15,24 +15,26 @@
     --card-foreground: 213 40% 96%;
     --popover: 220 44% 11%;
     --popover-foreground: 213 40% 96%;
-    --primary: 217 84% 62%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 217 33% 18%;
-    --secondary-foreground: 213 40% 96%;
-    --muted: 217 33% 16%;
-    --muted-foreground: 215 25% 68%;
-    --accent: 217 40% 22%;
-    --accent-foreground: 213 40% 96%;
+    /* Brand teal (#00ACCD) as the primary accent, with dark text on it for AA. */
+    --primary: 190 100% 42%;
+    --primary-foreground: 200 60% 9%;
+    --secondary: 205 30% 18%;
+    --secondary-foreground: 205 30% 95%;
+    --muted: 205 28% 16%;
+    --muted-foreground: 205 20% 68%;
+    --accent: 200 34% 22%;
+    --accent-foreground: 205 30% 95%;
     --destructive: 0 72% 60%;
     --destructive-foreground: 0 0% 100%;
-    --border: 217 33% 22%;
-    --input: 217 33% 22%;
-    --ring: 217 84% 62%;
+    --border: 205 26% 22%;
+    --input: 205 26% 22%;
+    --ring: 190 100% 42%;
     --radius: 0.6rem;
 
-    /* Futuristic extras used by the shell (not standard shadcn tokens). */
-    --accent-2: 205 90% 66%;
-    --glow: 217 84% 62%;
+    /* Brand secondary accents (green #A6CE39, orange #FAA619). */
+    --accent-2: 74 57% 52%;
+    --accent-3: 38 96% 54%;
+    --glow: 190 100% 42%;
   }
 
   * {
@@ -48,7 +50,7 @@
     background-color: hsl(var(--background));
     background-image:
       radial-gradient(1100px 620px at 78% -8%, hsl(var(--primary) / 0.16), transparent 60%),
-      radial-gradient(900px 600px at 6% 108%, hsl(210 80% 40% / 0.14), transparent 55%);
+      radial-gradient(900px 600px at 6% 108%, hsl(74 55% 45% / 0.12), transparent 55%);
     background-attachment: fixed;
     min-height: 100vh;
   }
