@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { BrandMark } from '@/components/brand-mark';
 
 /** Public landing page. */
 export default function LandingPage() {
@@ -25,9 +26,7 @@ export default function LandingPage() {
   return (
     <main className="mx-auto max-w-5xl px-6 py-16">
       <header className="flex items-center justify-between">
-        <div className="text-lg font-semibold text-primary">
-          Global Connects · Client Intelligence
-        </div>
+        <BrandMark />
         <nav className="flex gap-3">
           <Button asChild variant="ghost">
             <Link href="/login">Sign in</Link>

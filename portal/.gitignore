@@ -25,3 +25,6 @@ next-env.d.ts
 # misc
 *.log
 .DS_Store
+
+# TypeScript incremental build info
+*.tsbuildinfo
